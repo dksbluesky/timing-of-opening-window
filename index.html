@@ -3,14 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>開窗判斷助手 - 穩定版</title>
-    
+    <title>開窗判斷助手 - 穩定修復版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://unpkg.com/lucide-react@latest"></script>
 </head>
@@ -18,144 +15,139 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        // 從全域變數中解構 React Hooks 與功能
         const { useState, useEffect, useMemo } = React;
-        const { 
-            Wind, Thermometer, MapPin, AlertTriangle, 
-            CheckCircle, XCircle, RefreshCw, Settings, Globe 
-        } = LucideReact;
 
-        // --- 行政區資料庫 ---
+        // 安全取得圖標組件的函數，防止 Error #130
+        const SafeIcon = ({ name, size = 20, className = "" }) => {
+            // 嘗試從不同的全域變數路徑抓取組件
+            const lib = window.LucideReact || window.lucideReact;
+            const IconComponent = lib ? lib[name] : null;
+            
+            if (!IconComponent) {
+                return <span style={{fontSize: size}}>📍</span>; // 沒抓到圖標時的備案
+            }
+            return <IconComponent size={size} className={className} />;
+        };
+
         const TAIWAN_LOCATIONS = {
-            "台北市": { "中正區": { lat: 25.032, lon: 121.519 }, "大安區": { lat: 25.026, lon: 121.543 }, "信義區": { lat: 25.033, lon: 121.565 }, "士林區": { lat: 25.092, lon: 121.525 }, "北投區": { lat: 25.132, lon: 121.498 }, "內湖區": { lat: 25.074, lon: 121.581 }, "南港區": { lat: 25.055, lon: 121.610 }, "松山區": { lat: 25.058, lon: 121.558 }, "萬華區": { lat: 25.035, lon: 121.499 }, "文山區": { lat: 24.998, lon: 121.559 }, "大同區": { lat: 25.063, lon: 121.513 }, "中山區": { lat: 25.064, lon: 121.533 } },
-            "新北市": { "板橋區": { lat: 25.014, lon: 121.463 }, "新莊區": { lat: 25.036, lon: 121.450 }, "中和區": { lat: 24.993, lon: 121.503 }, "永和區": { lat: 25.008, lon: 121.513 }, "淡水區": { lat: 25.176, lon: 121.446 }, "林口區": { lat: 25.077, lon: 121.393 } },
-            "台中市": { "中區": { lat: 24.145, lon: 120.678 }, "西屯區": { lat: 24.163, lon: 120.640 }, "北屯區": { lat: 24.180, lon: 120.718 }, "南屯區": { lat: 24.137, lon: 120.643 } },
-            "台南市": { "中西區": { lat: 22.992, lon: 120.197 }, "安平區": { lat: 22.998, lon: 120.165 }, "永康區": { lat: 23.017, lon: 120.262 }, "東區": { lat: 22.986, lon: 120.218 } },
-            "高雄市": { "苓雅區": { lat: 22.623, lon: 120.312 }, "左營區": { lat: 22.693, lon: 120.297 }, "鳳山區": { lat: 22.626, lon: 120.357 } }
-            // (其餘縣市可依此類推加入)
+            "台北市": { "中正區": { lat: 25.032, lon: 121.519 }, "大安區": { lat: 25.026, lon: 121.543 }, "信義區": { lat: 25.033, lon: 121.565 }, "士林區": { lat: 25.092, lon: 121.525 } },
+            "新北市": { "板橋區": { lat: 25.014, lon: 121.463 }, "新莊區": { lat: 25.036, lon: 121.450 }, "淡水區": { lat: 25.176, lon: 121.446 } },
+            "台南市": { 
+                "中西區": { lat: 22.992, lon: 120.197 }, "安平區": { lat: 22.998, lon: 120.165 }, 
+                "東區": { lat: 22.986, lon: 120.218 }, "南區": { lat: 22.959, lon: 120.184 },
+                "北區": { lat: 23.007, lon: 120.207 }, "安南區": { lat: 23.047, lon: 120.183 },
+                "永康區": { lat: 23.017, lon: 120.262 }, "歸仁區": { lat: 22.969, lon: 120.295 },
+                "新市區": { lat: 23.076, lon: 120.294 }, "善化區": { lat: 23.131, lon: 120.295 }
+            },
+            "高雄市": { "苓雅區": { lat: 22.623, lon: 120.312 }, "左營區": { lat: 22.693, lon: 120.297 }, "鼓山區": { lat: 22.651, lon: 120.274 } }
         };
 
         const calculateDewPoint = (T, RH) => {
-            if (T === "" || RH === "" || isNaN(T) || isNaN(RH)) return null;
+            const tNum = parseFloat(T), rhNum = parseFloat(RH);
+            if (isNaN(tNum) || isNaN(rhNum)) return null;
             const a = 17.27, b = 237.7;
-            const alpha = ((a * T) / (b + T)) + Math.log(RH / 100.0);
+            const alpha = ((a * tNum) / (b + tNum)) + Math.log(rhNum / 100.0);
             return parseFloat(((b * alpha) / (a - alpha)).toFixed(1));
         };
 
         function App() {
             const [algoMode, setAlgoMode] = useState('strict');
-            const [isAutoOutdoor, setIsAutoOutdoor] = useState(true);
-            const [selectedCity, setSelectedCity] = useState("台北市");
-            const [selectedDistrict, setSelectedDistrict] = useState("中正區");
-            const [indoorTemp, setIndoorTemp] = useState(24.0);
-            const [indoorHumid, setIndoorHumid] = useState(60);
-            const [outdoorData, setOutdoorData] = useState({ temp: null, humid: null, loading: false, error: null });
-            const [manualOutTemp, setManualOutTemp] = useState(25.0);
-            const [manualOutHumid, setManualOutHumid] = useState(55);
+            const [isAuto, setIsAuto] = useState(true);
+            const [city, setCity] = useState("台南市");
+            const [dist, setDist] = useState("中西區");
+            const [inT, setInT] = useState(24.0);
+            const [inH, setInH] = useState(60);
+            const [outData, setOutData] = useState({ t: 25, h: 55, loading: false });
 
             useEffect(() => {
-                if (!isAutoOutdoor) return;
-                const fetchData = async () => {
-                    setOutdoorData(prev => ({ ...prev, loading: true, error: null }));
-                    const loc = TAIWAN_LOCATIONS[selectedCity]?.[selectedDistrict];
-                    try {
-                        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&current=temperature_2m,relative_humidity_2m&timezone=auto`);
-                        const data = await res.json();
-                        setOutdoorData({ temp: data.current.temperature_2m, humid: data.current.relative_humidity_2m, loading: false, error: null });
-                    } catch (err) {
-                        setOutdoorData(prev => ({ ...prev, loading: false, error: "連線失敗" }));
-                    }
-                };
-                fetchData();
-            }, [selectedCity, selectedDistrict, isAutoOutdoor]);
+                if (!isAuto) return;
+                setOutData(p => ({ ...p, loading: true }));
+                const loc = TAIWAN_LOCATIONS[city][dist];
+                fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&current=temperature_2m,relative_humidity_2m&timezone=auto`)
+                    .then(r => r.json())
+                    .then(d => setOutData({ t: d.current.temperature_2m, h: d.current.relative_humidity_2m, loading: false }))
+                    .catch(() => setOutData(p => ({ ...p, loading: false })));
+            }, [city, dist, isAuto]);
 
-            const calculation = useMemo(() => {
-                const inT = parseFloat(indoorTemp), inH = parseFloat(indoorHumid);
-                const inDP = calculateDewPoint(inT, inH);
-                const outT = isAutoOutdoor ? outdoorData.temp : parseFloat(manualOutTemp);
-                const outH = isAutoOutdoor ? outdoorData.humid : parseFloat(manualOutHumid);
-                const outDP = calculateDewPoint(outT, outH);
+            const calc = useMemo(() => {
+                const indoorDP = calculateDewPoint(inT, inH);
+                const outdoorDP = calculateDewPoint(outData.t, outData.h);
+                if (indoorDP === null || outdoorDP === null) return { status: 'err' };
 
-                if (inDP === null || outDP === null) return { status: "loading", color: "bg-slate-400", reason: "等待數據..." };
-
-                const dpDiff = (inDP - outDP).toFixed(1);
-                const tDiff = (outT - inT).toFixed(1);
-                const base = { inDP, outDP, outT, outH, dpDiff, tDiff };
+                const dpDiff = (indoorDP - outdoorDP).toFixed(1);
+                const tDiff = (outData.t - inT).toFixed(1);
 
                 if (algoMode === 'strict') {
-                    if (dpDiff >= 2.0 && tDiff <= 3.0) return { ...base, status: "open", color: "bg-emerald-600", icon: "open", reason: "符合強效除濕標準" };
-                    return { ...base, status: "close", color: "bg-slate-600", icon: "close", reason: "未達嚴格標準" };
+                    if (dpDiff >= 2.0 && tDiff <= 3.0) 
+                        return { status: 'open', color: 'bg-emerald-600', icon: 'CheckCircle', msg: '強效除濕中！戶外很乾。', dpDiff, tDiff };
+                    return { status: 'close', color: 'bg-slate-600', icon: 'XCircle', msg: '未達嚴格除濕標準。', dpDiff, tDiff };
                 } else {
-                    if (outDP >= inT) return { ...base, status: "close", color: "bg-red-600", icon: "danger", reason: "警告：開窗會反潮結露" };
-                    if (outDP < inDP) return { ...base, status: "open", color: "bg-blue-600", icon: "open", reason: "戶外空氣較乾燥" };
-                    return { ...base, status: "close", color: "bg-orange-500", icon: "close", reason: "戶外濕氣較重" };
+                    if (outdoorDP >= inT) 
+                        return { status: 'close', color: 'bg-red-600', icon: 'AlertTriangle', msg: '反潮預警！戶外露點過高。', dpDiff, tDiff };
+                    return { status: 'open', color: 'bg-blue-600', icon: 'Wind', msg: '通風良好，戶外較乾燥。', dpDiff, tDiff };
                 }
-            }, [indoorTemp, indoorHumid, outdoorData, manualOutTemp, manualOutHumid, isAutoOutdoor, algoMode]);
+            }, [inT, inH, outData, algoMode]);
 
             return (
-                <div className="min-h-screen bg-slate-100 p-4 flex flex-col items-center font-sans">
-                    <div className="max-w-md w-full bg-white shadow-2xl rounded-3xl overflow-hidden border border-slate-200">
+                <div className="min-h-screen bg-slate-100 p-4 flex justify-center items-start font-sans">
+                    <div className="max-w-md w-full bg-white shadow-2xl rounded-3xl overflow-hidden">
                         <header className="bg-slate-800 text-white p-5 flex justify-between items-center">
-                            <div className="flex items-center gap-2"><Wind size={22} className="text-emerald-400"/><h1 className="text-xl font-bold">開窗判斷助手</h1></div>
+                            <div className="flex items-center gap-2">
+                                <SafeIcon name="Wind" className="text-emerald-400" />
+                                <h1 className="text-xl font-bold">開窗助手</h1>
+                            </div>
                         </header>
 
                         <div className="p-4 space-y-4">
-                            {/* 模式切換 */}
-                            <div className="flex bg-slate-100 p-1 rounded-xl">
-                                <button onClick={()=>setAlgoMode('strict')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${algoMode==='strict'?'bg-white shadow text-slate-800':'text-slate-400'}`}>嚴格除濕</button>
-                                <button onClick={()=>setAlgoMode('standard')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${algoMode==='standard'?'bg-white shadow text-slate-800':'text-slate-400'}`}>基本防潮</button>
+                            <div className="flex bg-slate-100 p-1 rounded-xl shadow-inner text-sm font-bold">
+                                <button onClick={()=>setAlgoMode('strict')} className={`flex-1 py-2 rounded-lg ${algoMode==='strict'?'bg-white shadow text-slate-800':'text-slate-400'}`}>嚴格除濕</button>
+                                <button onClick={()=>setAlgoMode('standard')} className={`flex-1 py-2 rounded-lg ${algoMode==='standard'?'bg-white shadow text-slate-800':'text-slate-400'}`}>基本防潮</button>
                             </div>
 
-                            {/* 戶外環境 */}
-                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                            <div className="bg-slate-50 p-4 rounded-2xl border">
                                 <div className="flex justify-between items-center mb-3">
-                                    <div className="flex items-center gap-2 text-sm font-bold text-slate-600"><Globe size={16}/> 戶外數據</div>
-                                    <button onClick={()=>setIsAutoOutdoor(!isAutoOutdoor)} className="text-[10px] px-2 py-1 bg-white border rounded shadow-sm">{isAutoOutdoor?'切換手動':'切換自動'}</button>
+                                    <div className="flex items-center gap-1 text-sm font-bold text-slate-500"><SafeIcon name="Globe" size={14}/> 戶外</div>
+                                    <button onClick={()=>setIsAuto(!isAuto)} className="text-[10px] px-2 py-1 bg-white border rounded shadow-sm">{isAuto?'自動定位中':'手動模式'}</button>
                                 </div>
-                                
-                                {isAutoOutdoor ? (
+                                {isAuto ? (
                                     <div className="flex gap-2 mb-3">
-                                        <select value={selectedCity} onChange={e=>setSelectedCity(e.target.value)} className="flex-1 text-sm p-2 border rounded-lg bg-white">
+                                        <select value={city} onChange={e=>{setCity(e.target.value); setDist(Object.keys(TAIWAN_LOCATIONS[e.target.value])[0])}} className="flex-1 p-2 border rounded-lg text-sm">
                                             {Object.keys(TAIWAN_LOCATIONS).map(c=><option key={c}>{c}</option>)}
                                         </select>
-                                        <select value={selectedDistrict} onChange={e=>setSelectedDistrict(e.target.value)} className="flex-1 text-sm p-2 border rounded-lg bg-white">
-                                            {Object.keys(TAIWAN_LOCATIONS[selectedCity]).map(d=><option key={d}>{d}</option>)}
+                                        <select value={dist} onChange={e=>setDist(e.target.value)} className="flex-1 p-2 border rounded-lg text-sm">
+                                            {Object.keys(TAIWAN_LOCATIONS[city]).map(d=><option key={d}>{d}</option>)}
                                         </select>
                                     </div>
                                 ) : (
                                     <div className="flex gap-2 mb-3">
-                                        <input type="number" value={manualOutTemp} onChange={e=>setManualOutTemp(e.target.value)} className="flex-1 text-sm p-2 border rounded-lg" placeholder="溫度°C"/>
-                                        <input type="number" value={manualOutHumid} onChange={e=>setManualOutHumid(e.target.value)} className="flex-1 text-sm p-2 border rounded-lg" placeholder="濕度%"/>
+                                        <input type="number" value={outData.t} onChange={e=>setOutData({...outData, t: e.target.value})} className="flex-1 p-2 border rounded-lg text-sm" placeholder="溫度°C"/>
+                                        <input type="number" value={outData.h} onChange={e=>setOutData({...outData, h: e.target.value})} className="flex-1 p-2 border rounded-lg text-sm" placeholder="濕度%"/>
                                     </div>
                                 )}
-
-                                <div className="grid grid-cols-3 gap-2">
-                                    <div className="bg-white p-2 rounded-xl text-center shadow-sm"><div className="text-[10px] text-slate-400">溫度</div><div className="font-bold text-slate-700">{calculation.outT??'--'}°</div></div>
-                                    <div className="bg-white p-2 rounded-xl text-center shadow-sm"><div className="text-[10px] text-slate-400">濕度</div><div className="font-bold text-slate-700">{calculation.outH??'--'}%</div></div>
-                                    <div className="bg-emerald-50 p-2 rounded-xl text-center border border-emerald-100"><div className="text-[10px] text-emerald-600 font-bold">露點</div><div className="font-bold text-emerald-600">{calculation.outDP??'--'}°</div></div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="bg-white p-2 rounded-xl text-center shadow-sm border"><div className="text-[10px] text-slate-400">溫度</div><div className="font-bold">{outData.t}°</div></div>
+                                    <div className="bg-white p-2 rounded-xl text-center shadow-sm border"><div className="text-[10px] text-slate-400">濕度</div><div className="font-bold">{outData.h}%</div></div>
                                 </div>
                             </div>
 
-                            {/* 室內環境 */}
-                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                                <div className="flex items-center gap-2 text-sm font-bold text-slate-600 mb-3"><Thermometer size={16}/> 室內數據</div>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <input type="number" value={indoorTemp} onChange={e=>setIndoorTemp(e.target.value)} className="p-2 border rounded-lg text-sm font-bold" placeholder="室內溫度"/>
-                                    <input type="number" value={indoorHumid} onChange={e=>setIndoorHumid(e.target.value)} className="p-2 border rounded-lg text-sm font-bold" placeholder="室內濕度"/>
+                            <div className="bg-slate-50 p-4 rounded-2xl border">
+                                <div className="flex items-center gap-1 text-sm font-bold text-slate-500 mb-3"><SafeIcon name="Thermometer" size={14}/> 室內</div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <input type="number" value={inT} onChange={e=>setInT(e.target.value)} className="p-2 border rounded-lg text-sm font-bold" />
+                                    <input type="number" value={inH} onChange={e=>setInH(e.target.value)} className="p-2 border rounded-lg text-sm font-bold" />
                                 </div>
                             </div>
 
-                            {/* 判斷結果 */}
-                            <div className={`p-6 rounded-3xl text-white transition-all shadow-lg ${calculation.color}`}>
-                                <h2 className="text-3xl font-black mb-1">
-                                    {calculation.status === "open" ? "建議開窗" : (calculation.status === "loading" ? "載入中" : "建議關窗")}
-                                </h2>
-                                <p className="text-sm font-medium opacity-90">{calculation.reason}</p>
-                                
-                                {calculation.dpDiff && (
-                                    <div className="mt-4 pt-4 border-t border-white/20 grid grid-cols-2 gap-4">
-                                        <div className="text-center"><div className="text-[10px] opacity-70">露點差 (內-外)</div><div className="text-xl font-mono font-bold">{calculation.dpDiff}</div></div>
-                                        <div className="text-center"><div className="text-[10px] opacity-70">溫差 (外-內)</div><div className="text-xl font-mono font-bold">{calculation.tDiff}</div></div>
+                            <div className={`p-6 rounded-3xl text-white transition-all shadow-xl ${calc.color || 'bg-slate-400'}`}>
+                                <div className="flex items-center gap-3 mb-2">
+                                    <SafeIcon name={calc.icon || 'RefreshCw'} size={32} />
+                                    <h2 className="text-3xl font-black">{calc.status === 'open' ? '建議開窗' : (calc.status === 'err' ? '載入中' : '建議關窗')}</h2>
+                                </div>
+                                <p className="text-sm font-medium opacity-90">{calc.msg || '正在計算環境數據...'}</p>
+                                {calc.dpDiff && (
+                                    <div className="mt-4 pt-4 border-t border-white/20 flex justify-around">
+                                        <div className="text-center"><div className="text-[10px] opacity-70">露點差</div><div className="text-xl font-mono font-bold">{calc.dpDiff}</div></div>
+                                        <div className="text-center"><div className="text-[10px] opacity-70">溫差</div><div className="text-xl font-mono font-bold">{calc.tDiff}</div></div>
                                     </div>
                                 )}
                             </div>
