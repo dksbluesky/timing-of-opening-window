@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>開窗助手 Pro</title>
+    <title>開窗判斷助手 - 全台 CWA 專業版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/lucide-react@latest"></script>
 </head>
 <body class="bg-slate-100 min-h-screen flex items-center justify-center p-0 md:p-6">
     <div id="root" class="w-full max-w-lg"></div>
@@ -15,64 +17,43 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
-        // --- 內嵌 SVG 圖標：解決所有相容性報錯 ---
-        const Icon = ({ name, className = "w-6 h-6" }) => {
-            const icons = {
-                Wind: <path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2m-6.8 6a2 2 0 1 1-1.4 3.4H2m16.7-16.8a3.5 3.5 0 1 1 3.1 6H2" />,
-                Rain: <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M16 14v6m-4-2v6m-4-4v6" />,
-                Home: (
-                    <React.Fragment>
-                        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                        <polyline points="9 22 9 12 15 12 15 22" />
-                    </React.Fragment>
-                ),
-                Refresh: <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8m0 0V3m0 5h5m-1 4a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16m0 0v5m0-5h-5" />,
-                Check: <polyline points="20 6 9 17 4 12" />,
-                X: (
-                    <React.Fragment>
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6" y1="6" x2="18" y2="18" />
-                    </React.Fragment>
-                )
-            };
-            return (
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-                    {icons[name]}
-                </svg>
-            );
+        // 安全取得圖標組件，徹底解決 Error #130
+        const Icon = ({ name, size = 20, className = "" }) => {
+            const lib = window.LucideReact || window.lucideReact;
+            const Component = lib ? lib[name] : null;
+            return Component ? <Component size={size} className={className} /> : <span style={{fontSize: size}}>📍</span>;
         };
 
-        const CWA_KEY = "CWA-BDD150F7-F455-44CA-8E6B-F548BBB011CB";
-        const OBS_URL = "https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0003-001?format=JSON";
-        const FC_URL = "https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-091?format=JSON";
+        const CWA_API_KEY = "CWA-BDD150F7-F455-44CA-8E6B-F548BBB011CB";
+        const CWA_URL = "https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0003-001?format=JSON";
 
-        // --- 全台 22 縣市、368 行政區完整資料庫 ---
-        const ALL_TAIWAN_AREAS = {
+        // 全台 368 鄉鎮市區完整清單
+        const TAIWAN_DATA = {
+            "台南市": ["中西區", "安平區", "東區", "南區", "北區", "安南區", "永康區", "歸仁區", "新化區", "左鎮區", "玉井區", "楠西區", "南化區", "仁德區", "關廟區", "龍崎區", "官田區", "麻豆區", "佳里區", "西港區", "七股區", "將軍區", "學甲區", "北門區", "新營區", "後壁區", "白河區", "東山區", "六甲區", "下營區", "柳營區", "鹽水區", "善化區", "大內區", "山上區", "新市區", "安定區"],
             "台北市": ["中正區", "大同區", "中山區", "松山區", "大安區", "萬華區", "信義區", "士林區", "北投區", "內湖區", "南港區", "文山區"],
             "新北市": ["板橋區", "三重區", "中和區", "永和區", "新莊區", "新店區", "樹林區", "鶯歌區", "三峽區", "淡水區", "汐止區", "瑞芳區", "土城區", "蘆洲區", "五股區", "泰山區", "林口區", "深坑區", "石碇區", "坪林區", "三芝區", "石門區", "八里區", "平溪區", "雙溪區", "貢寮區", "金山區", "萬里區", "烏來區"],
-            "桃園市": ["桃園區", "中壢區", "大溪區", "楊梅區", "蘆竹區", "大園區", "龜山區", "八德區", "龍潭區", "平鎮區", "新屋區", "觀音區", "復興區"],
             "台中市": ["中區", "東區", "南區", "西區", "北區", "北屯區", "西屯區", "南屯區", "太平區", "大里區", "霧峰區", "烏日區", "豐原區", "後里區", "石岡區", "東勢區", "和平區", "新社區", "潭子區", "大雅區", "神岡區", "大肚區", "沙鹿區", "龍井區", "梧棲區", "清水區", "大甲區", "外埔區", "大安區"],
-            "台南市": ["中西區", "安平區", "東區", "南區", "北區", "安南區", "永康區", "歸仁區", "新化區", "左鎮區", "玉井區", "楠西區", "南化區", "仁德區", "關廟區", "龍崎區", "官田區", "麻豆區", "佳里區", "西港區", "七股區", "將軍區", "學甲區", "北門區", "新營區", "後壁區", "白河區", "東山區", "六甲區", "下營區", "柳營區", "鹽水區", "善化區", "大內區", "山上區", "新市區", "安定區"],
             "高雄市": ["新興區", "前金區", "苓雅區", "鹽埕區", "鼓山區", "旗津區", "前鎮區", "三民區", "楠梓區", "小港區", "左營區", "仁武區", "大社區", "岡山區", "路竹區", "阿蓮區", "田寮區", "燕巢區", "橋頭區", "梓官區", "彌陀區", "永安區", "湖內區", "鳳山區", "大寮區", "林園區", "鳥松區", "大樹區", "旗山區", "美濃區", "六龜區", "內門區", "杉林區", "甲仙區", "桃源區", "那瑪夏區", "茂林區", "茄萣區"],
             "基隆市": ["仁愛區", "信義區", "中正區", "中山區", "安樂區", "暖暖區", "七堵區"],
+            "桃園市": ["桃園區", "中壢區", "大溪區", "楊梅區", "蘆竹區", "大園區", "龜山區", "八德區", "龍潭區", "平鎮區", "新屋區", "觀音區", "復興區"],
             "新竹市": ["東區", "北區", "香山區"],
             "新竹縣": ["竹北市", "竹東鎮", "新埔鎮", "關西鎮", "湖口鄉", "新豐鄉", "芎林鄉", "橫山鄉", "北埔鄉", "寶山鄉", "峨眉鄉", "尖石鄉", "五峰鄉"],
-            "苗栗縣": ["苗栗市", "頭份市", "竹南鎮", "後龍鎮", "通霄鎮", "苑裡鎮", "卓蘭鎮", "造橋鄉", "西湖鄉", "頭屋鄉", "公館鄉", "銅鑼鄉", "三義鄉", "大湖鄉", "獅潭鄉", "三灣鄉", "南庄鄉", "泰安鄉"],
+            "苗栗縣": ["苗栗市", "頭份區", "竹南鎮", "後龍鎮", "通霄鎮", "苑裡鎮", "卓蘭鎮", "造橋鄉", "西湖鄉", "頭屋鄉", "公館鄉", "銅鑼鄉", "三義鄉", "大湖鄉", "獅潭鄉", "三灣鄉", "南庄鄉", "泰安鄉"],
             "彰化縣": ["彰化市", "鹿港鎮", "和美鎮", "線西鄉", "伸港鄉", "福興鄉", "秀水鄉", "花壇鄉", "芬園鄉", "員林市", "溪湖鎮", "田中鎮", "大村鄉", "埔鹽鄉", "埔心鄉", "永靖鄉", "社頭鄉", "二水鄉", "北斗鎮", "二林鎮", "埤頭鄉", "芳苑鄉", "大城鄉", "竹塘鄉", "溪州鄉", "田尾鄉"],
             "南投縣": ["南投市", "埔里鎮", "草屯鎮", "竹山鎮", "集集鎮", "名間鄉", "鹿谷鄉", "中寮鄉", "魚池鄉", "國姓鄉", "水里鄉", "信義鄉", "仁愛鄉"],
             "雲林縣": ["斗六市", "斗南鎮", "虎尾鎮", "西螺鎮", "土庫鎮", "北港鎮", "古坑鄉", "大埤鄉", "莿桐鄉", "林內鄉", "二崙鄉", "崙背鄉", "麥寮鄉", "東勢鄉", "褒忠鄉", "台西鄉", "元長鄉", "四湖鄉", "口湖鄉", "水林鄉"],
             "嘉義市": ["東區", "西區"],
-            "嘉義縣": ["太保市", "朴子市", "布袋鎮", "大林鎮", "民雄鄉", "溪口鄉", "新港鄉", "六腳鄉", "東石鄉", "義竹鄉", "鹿草鄉", "水上鄉", "中埔鄉", "竹崎鄉", "梅山鄉", "番路鄉", "大埔鄉", "阿里山鄉"],
-            "屏東縣": ["屏東市", "三地門鄉", "霧台鄉", "瑪家鄉", "九如鄉", "里港鄉", "高樹鄉", "鹽埔鄉", "長治鄉", "麟洛鄉", "竹田鄉", "內埔鄉", "萬丹鄉", "潮州鎮", "泰武鄉", "來義鄉", "萬巒鄉", "崁頂鄉", "新埤鄉", "南州鄉", "林邊鄉", "東港鎮", "琉球鄉", "佳冬鄉", "新園鄉", "枋寮鄉", "枋山鄉", "春日鄉", "獅子鄉", "車城鄉", "牡丹鄉", "恆春鎮", "滿州鄉"],
+            "嘉義縣": ["太保市", "朴子市", "布袋鎮", "大林鎮", "民雄鄉", "溪口鄉", "新港鄉", "六腳鄉", "東石鄉", "義竹鄉", "鹿草鄉", "水上鄉", "中埔鄉", "竹崎鄉", "梅山鄉", "番路鄉", "大埔鄉", "阿里山"],
+            "屏東縣": ["屏東市", "三地門", "霧台鄉", "瑪家鄉", "九如鄉", "里港鄉", "高樹鄉", "鹽埔鄉", "長治鄉", "麟洛鄉", "竹田鄉", "內埔鄉", "萬丹鄉", "潮州鎮", "泰武鄉", "來義鄉", "萬巒鄉", "嵌頂鄉", "新埤鄉", "南州鄉", "林邊鄉", "東港鎮", "琉球鄉", "佳冬鄉", "新園鄉", "枋寮鄉", "枋山鄉", "春日鄉", "獅子鄉", "車城鄉", "牡丹鄉", "恆春鎮", "滿州鄉"],
             "宜蘭縣": ["宜蘭市", "羅東鎮", "蘇澳鎮", "頭城鎮", "礁溪鄉", "壯圍鄉", "員山鄉", "冬山鄉", "五結鄉", "三星鄉", "大同鄉", "南澳鄉"],
             "花蓮縣": ["花蓮市", "鳳林鎮", "玉里鎮", "新城鄉", "吉安鄉", "壽豐鄉", "光復鄉", "豐濱鄉", "瑞穗鄉", "富里鄉", "秀林鄉", "萬榮鄉", "卓溪鄉"],
-            "台東縣": ["台東市", "成功鎮", "關山鎮", "卑南鄉", "鹿野鄉", "池上鄉", "東河鄉", "長濱鄉", "太麻里鄉", "大武鄉", "綠島鄉", "海端鄉", "延平鄉", "金峰鄉", "達仁鄉", "蘭嶼鄉"],
+            "台東縣": ["台東市", "成功鎮", "關山鎮", "卑南鄉", "鹿野鄉", "池上鄉", "東河鄉", "長濱鄉", "太麻里", "大武鄉", "綠島鄉", "海端鄉", "延平鄉", "金峰鄉", "達仁鄉", "蘭嶼鄉"],
             "澎湖縣": ["馬公市", "湖西鄉", "白沙鄉", "西嶼鄉", "望安鄉", "七美鄉"],
             "金門縣": ["金城鎮", "金湖鎮", "金沙鎮", "金寧鄉", "烈嶼鄉", "烏坵鄉"],
             "連江縣": ["南竿鄉", "北竿鄉", "莒光鄉", "東引鄉"]
         };
 
-        const calcDP = (T, RH) => {
+        const calculateDP = (T, RH) => {
             const t = parseFloat(T), h = parseFloat(RH);
             if (isNaN(t) || isNaN(h)) return null;
             const a = 17.27, b = 237.7;
@@ -81,131 +62,137 @@
         };
 
         function App() {
-            const [tab, setTab] = useState('judge');
-            const [city, setCity] = useState("台南市");
-            const [dist, setDist] = useState("中西區"); // 預設所在地
+            const [algo, setAlgo] = useState('strict');
+            const [city, setCity] = useState("台南市"); // 預設所在地
+            const [dist, setDist] = useState("中西區");
             const [indoor, setIndoor] = useState({ t: 24.0, h: 60 });
-            const [obs, setObs] = useState({ t: null, h: null, station: "", loading: false });
-            const [fc, setFc] = useState({ data: [], loading: false });
+            const [outdoor, setOutdoor] = useState({ t: null, h: null, station: "", loading: false });
 
-            const fetchData = async () => {
-                setObs(p => ({ ...p, loading: true }));
-                setFc(p => ({ ...p, loading: true }));
+            const refreshData = async () => {
+                setOutdoor(p => ({ ...p, loading: true }));
                 try {
-                    const resObs = await fetch(`${OBS_URL}&Authorization=${CWA_KEY}&locationName=${encodeURIComponent(city)}`);
-                    const dObs = await resObs.json();
-                    const s = dObs.records.Station.find(x => x.GeoInfo.TownName === dist) || dObs.records.Station[0];
-                    setObs({ t: s.WeatherElement.AirTemperature, h: s.WeatherElement.RelativeHumidity, station: s.StationName, loading: false });
-
-                    const resFc = await fetch(`${FC_URL}&Authorization=${CWA_KEY}&locationName=${encodeURIComponent(city)}`);
-                    const dFc = await resFc.json();
-                    const loc = dFc.records.locations[0].location.find(l => l.locationName === dist) || dFc.records.locations[0].location[0];
-                    const pop = loc.weatherElement.find(e => e.elementName === "PoP12h");
-                    if (pop) setFc({ data: pop.time.slice(0, 8).map(t => ({ time: t.startTime.substring(5, 13).replace(' ', '\n'), val: parseInt(t.elementValue[0].value) || 0 })), loading: false });
-                } catch (e) {
-                    setObs(p => ({ ...p, loading: false }));
-                    setFc(p => ({ ...p, loading: false }));
-                }
+                    const res = await fetch(`${CWA_URL}&Authorization=${CWA_API_KEY}&locationName=${encodeURIComponent(city)}`);
+                    const data = await res.json();
+                    const stations = data.records.Station;
+                    const match = stations.find(s => s.GeoInfo.TownName === dist) || stations[0];
+                    setOutdoor({
+                        t: match.WeatherElement.AirTemperature,
+                        h: match.WeatherElement.RelativeHumidity,
+                        station: `${match.StationName} (${match.GeoInfo.TownName || '鄰近'})`,
+                        loading: false
+                    });
+                } catch (e) { setOutdoor(p => ({ ...p, loading: false })); }
             };
 
-            useEffect(() => { fetchData(); }, [city, dist]);
+            useEffect(() => { refreshData(); }, [city, dist]);
 
             const analysis = useMemo(() => {
-                const inDP = calcDP(indoor.t, indoor.h), outDP = calcDP(obs.t, obs.h);
+                const inDP = calculateDP(indoor.t, indoor.h);
+                const outDP = calculateDP(outdoor.t, outdoor.h);
                 if (inDP === null || outDP === null) return null;
-                const dDiff = (inDP - outDP).toFixed(1), tDiff = (obs.t - indoor.t).toFixed(1);
-                const pass = dDiff >= 2.0 && tDiff <= 3.0;
-                return { pass, dDiff, tDiff };
-            }, [indoor, obs]);
+                const dpDiff = (inDP - outDP).toFixed(1);
+                const tDiff = (outdoor.t - indoor.t).toFixed(1);
+
+                if (algo === 'strict') {
+                    const dOk = dpDiff >= 2.0, tOk = tDiff <= 3.0;
+                    const can = dOk && tOk;
+                    return {
+                        status: can ? 'open' : 'close',
+                        color: can ? 'bg-emerald-600' : 'bg-slate-700',
+                        title: can ? '建議開窗' : '建議關窗',
+                        reason: can ? '室內外露點差顯著，強效除濕中！' : '環境數據未達嚴格除濕標準。',
+                        items: [
+                            { label: '露點差 (目標≥2.0)', val: dpDiff, pass: dOk },
+                            { label: '溫差 (目標≤3.0)', val: tDiff, pass: tOk }
+                        ]
+                    };
+                } else {
+                    const sOk = outdoor.t > inDP, dOk = outDP < inDP;
+                    const can = sOk && dOk;
+                    return {
+                        status: can ? 'open' : 'close',
+                        color: !sOk ? 'bg-red-600' : (can ? 'bg-blue-600' : 'bg-orange-500'),
+                        title: !sOk ? '反潮警報' : (can ? '建議開窗' : '建議關窗'),
+                        reason: !sOk ? '戶外氣溫過低，開窗必反潮！' : (can ? '戶外較乾，適合通風。' : '戶外濕氣仍重於室內。'),
+                        items: [
+                            { label: '防止反潮 (外溫>內露)', val: outdoor.t, pass: sOk },
+                            { label: '物理除濕 (外露<內露)', val: outDP, pass: dOk }
+                        ]
+                    };
+                }
+            }, [indoor, outdoor, algo]);
 
             return (
                 <div className="bg-white min-h-screen md:min-h-0 md:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden font-sans border border-slate-200">
-                    <header className="bg-slate-900 text-white p-6 pb-2">
-                        <div className="flex justify-between items-center mb-4">
-                            <div className="flex items-center gap-2">
-                                <Icon name="Wind" className="text-emerald-400" />
-                                <h1 className="text-xl font-black tracking-tighter uppercase">CWA PRO 助手</h1>
-                            </div>
-                            <button onClick={fetchData} className="p-2 bg-white/10 rounded-full active:scale-95 transition-all">
-                                <Icon name="Refresh" className={obs.loading ? "animate-spin" : ""} />
-                            </button>
+                    <header className="bg-slate-900 text-white p-6 flex justify-between items-center shadow-lg">
+                        <div className="flex items-center gap-3">
+                            <Icon name="Wind" className="text-emerald-400" size={26} />
+                            <h1 className="text-xl font-black tracking-tighter">開窗判斷助手</h1>
                         </div>
-                        <div className="grid grid-cols-2 gap-2 mb-4">
-                            <select value={city} onChange={e=>{setCity(e.target.value); setDist(ALL_TAIWAN_AREAS[e.target.value][0])}} className="bg-white/10 border border-white/20 p-2 rounded-xl text-xs font-bold text-white outline-none">
-                                {Object.keys(ALL_TAIWAN_AREAS).map(c=><option key={c} value={c} className="text-slate-800">{c}</option>)}
-                            </select>
-                            <select value={dist} onChange={e=>setDist(e.target.value)} className="bg-white/10 border border-white/20 p-2 rounded-xl text-xs font-bold text-white outline-none">
-                                {ALL_TAIWAN_AREAS[city].map(d=><option key={d} value={d} className="text-slate-800">{d}</option>)}
-                            </select>
-                        </div>
-                        <nav className="flex gap-6 mt-2 border-b border-white/10">
-                            <button onClick={()=>setTab('judge')} className={`pb-2 text-xs font-bold transition-all ${tab==='judge'?'border-b-2 border-emerald-400 text-emerald-400':'text-slate-500'}`}>開窗判斷</button>
-                            <button onClick={()=>setTab('forecast')} className={`pb-2 text-xs font-bold transition-all ${tab==='forecast'?'border-b-2 border-emerald-400 text-emerald-400':'text-slate-500'}`}>降雨趨勢</button>
-                        </nav>
+                        <button onClick={refreshData} className="p-2 hover:bg-white/10 rounded-full transition-all">
+                            <Icon name="RefreshCw" size={20} className={outdoor.loading ? 'animate-spin' : ''} />
+                        </button>
                     </header>
 
-                    <main className="p-5 flex-1 overflow-y-auto space-y-4">
-                        {tab === 'judge' ? (
-                            <React.Fragment>
-                                <section className="bg-slate-50 p-4 rounded-2xl border flex flex-col gap-3 text-slate-800">
-                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex justify-between">
-                                        <span>實時觀測 ({obs.station})</span>
-                                        <span className="text-emerald-500 font-black">CWA LIVE</span>
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-2 text-center">
-                                        <div className="bg-white p-2 rounded-xl border shadow-sm"><div className="text-[9px] text-slate-400">溫度</div><div className="font-black">{obs.t ?? '--'}°</div></div>
-                                        <div className="bg-white p-2 rounded-xl border shadow-sm"><div className="text-[9px] text-slate-400">濕度</div><div className="font-black">{obs.h ?? '--'}%</div></div>
-                                        <div className="bg-emerald-50 p-2 rounded-xl border border-emerald-100"><div className="text-[9px] text-emerald-600 font-bold">露點</div><div className="font-black text-emerald-600">{calcDP(obs.t, obs.h) ?? '--'}°</div></div>
-                                    </div>
-                                </section>
+                    <main className="p-4 space-y-4 flex-1 overflow-y-auto">
+                        <div className="flex bg-slate-100 p-1 rounded-2xl">
+                            <button onClick={()=>setAlgo('strict')} className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${algo==='strict'?'bg-white shadow text-slate-800':'text-slate-400'}`}>嚴格強效除濕</button>
+                            <button onClick={()=>setAlgo('standard')} className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${algo==='standard'?'bg-white shadow text-slate-800':'text-slate-400'}`}>一般物理防潮</button>
+                        </div>
 
-                                <section className="bg-slate-50 p-4 rounded-2xl border space-y-3">
-                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1"><Icon name="Home" className="w-3 h-3"/> 室內環境</div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <input type="number" step="0.1" value={indoor.t} onChange={e=>setIndoor({...indoor, t: e.target.value})} className="w-full p-2 border rounded-xl font-bold bg-white text-slate-800" />
-                                        <input type="number" step="1" value={indoor.h} onChange={e=>setIndoor({...indoor, h: e.target.value})} className="w-full p-2 border rounded-xl font-bold bg-white text-slate-800" />
-                                    </div>
-                                </section>
+                        <section className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                            <div className="flex justify-between items-center mb-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                <span className="flex items-center gap-1"><Icon name="Globe" size={12}/> 戶外測站 (CWA)</span>
+                                <span className="bg-slate-200 px-2 py-0.5 rounded text-slate-500">{outdoor.station || '定位中...'}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 mb-4">
+                                <select value={city} onChange={e=>{setCity(e.target.value); setDist(TAIWAN_DATA[e.target.value][0])}} className="bg-white border p-3 rounded-xl text-sm font-bold shadow-sm outline-none">
+                                    {Object.keys(TAIWAN_DATA).map(c=><option key={c}>{c}</option>)}
+                                </select>
+                                <select value={dist} onChange={e=>setDist(e.target.value)} className="bg-white border p-3 rounded-xl text-sm font-bold shadow-sm outline-none">
+                                    {TAIWAN_DATA[city].map(d=><option key={d}>{d}</option>)}
+                                </select>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2">
+                                <div className="bg-white p-3 rounded-2xl text-center border shadow-sm"><div className="text-[10px] text-slate-400 mb-1 font-bold">溫度</div><div className="text-lg font-black">{outdoor.t ?? '--'}°</div></div>
+                                <div className="bg-white p-3 rounded-2xl text-center border shadow-sm"><div className="text-[10px] text-slate-400 mb-1 font-bold">濕度</div><div className="text-lg font-black">{outdoor.h ?? '--'}%</div></div>
+                                <div className="bg-emerald-50 p-3 rounded-2xl text-center border border-emerald-100"><div className="text-[10px] text-emerald-600 font-bold mb-1">露點</div><div className="text-lg font-black text-emerald-600">{calculateDP(outdoor.t, outdoor.h) ?? '--'}°</div></div>
+                            </div>
+                        </section>
 
-                                {analysis && (
-                                    <div className={`${analysis.pass?'bg-emerald-600':'bg-slate-700'} p-6 rounded-[2rem] text-white shadow-xl transition-all`}>
-                                        <div className="flex items-center gap-3 mb-4">
-                                            {analysis.pass ? <Icon name="Check" /> : <Icon name="X" />}
-                                            <h2 className="text-2xl font-black">{analysis.pass?'建議開窗':'建議關窗'}</h2>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-2 text-center">
-                                            <div className="bg-black/10 p-3 rounded-xl border border-white/10"><div className="text-[9px] opacity-60 font-bold">露點差 (≥2.0)</div><div className="text-xl font-mono font-bold">{analysis.dDiff}</div></div>
-                                            <div className="bg-black/10 p-3 rounded-xl border border-white/10 text-center"><div className="text-[9px] opacity-60 font-bold">溫差 (≤3.0)</div><div className="text-xl font-mono font-bold">{analysis.tDiff}</div></div>
-                                        </div>
-                                    </div>
-                                )}
-                            </React.Fragment>
-                        ) : (
-                            <section className="space-y-4">
-                                <div className="bg-slate-900 p-6 rounded-[2rem] text-white min-h-[250px] flex flex-col">
-                                    <h3 className="text-sm font-bold mb-6 flex items-center gap-2 text-blue-400"><Icon name="Rain" /> 72 小時降雨機率</h3>
-                                    {fc.loading ? (
-                                        <div className="flex-1 flex items-center justify-center text-xs opacity-50 font-black tracking-widest uppercase">數據載入中...</div>
-                                    ) : (
-                                        <div className="flex items-end justify-between h-32 gap-1 mb-4 overflow-x-auto pb-4">
-                                            {fc.data.map((d, i) => (
-                                                <div key={i} className="flex-1 min-w-[35px] flex flex-col items-center gap-1">
-                                                    <div className="text-[8px] font-bold text-blue-300">{d.val}%</div>
-                                                    <div className="w-full bg-blue-500/40 rounded-t-sm transition-all" style={{height: `${Math.max(d.val, 5)}%`}}></div>
-                                                    <div className="text-[7px] text-white/50 text-center whitespace-pre mt-1">{d.time}</div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
+                        <section className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1 mb-3"><Icon name="Thermometer" size={12}/> 室內環境 (Indoor)</label>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div><label className="text-[9px] text-slate-400 font-bold mb-1 block">溫度 °C</label><input type="number" step="0.1" value={indoor.t} onChange={e=>setIndoor({...indoor, t: e.target.value})} className="w-full p-3 border rounded-xl font-black bg-white shadow-sm" /></div>
+                                <div><label className="text-[9px] text-slate-400 font-bold mb-1 block">濕度 %</label><input type="number" step="1" value={indoor.h} onChange={e=>setIndoor({...indoor, h: e.target.value})} className="w-full p-3 border rounded-xl font-black bg-white shadow-sm" /></div>
+                            </div>
+                        </section>
+
+                        {analysis && (
+                            <section className={`${analysis.color} p-6 rounded-[2.5rem] text-white shadow-2xl transition-all duration-500`}>
+                                <div className="flex items-center gap-4 mb-3">
+                                    <div className="bg-white/20 p-2 rounded-2xl">{analysis.status === 'open' ? <Icon name="CheckCircle" size={32}/> : <Icon name="XCircle" size={32}/>}</div>
+                                    <h2 className="text-3xl font-black tracking-tighter">{analysis.title}</h2>
                                 </div>
-                                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-500 leading-relaxed border-l-4 border-l-blue-400">
-                                    💡 專業提示：當降雨機率高於 30% 時，即便除濕指標達成，開窗仍需隨時留意天色變化。
+                                <p className="text-sm font-medium mb-6 opacity-90 pl-1">{analysis.reason}</p>
+                                <div className="space-y-2">
+                                    {analysis.items.map((item, i) => (
+                                        <div key={i} className={`bg-black/10 backdrop-blur-md rounded-2xl p-4 flex justify-between items-center border ${item.pass ? 'border-white/20' : 'border-red-400/40'}`}>
+                                            <div>
+                                                <div className="text-[10px] font-bold opacity-60 uppercase tracking-tighter mb-1">{item.label}</div>
+                                                <div className="text-2xl font-mono font-black">{item.val}</div>
+                                            </div>
+                                            <div className={item.pass ? 'text-emerald-300' : 'text-red-300'}>
+                                                <Icon name={item.pass ? "CheckCircle" : "XCircle"} size={24}/>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </section>
                         )}
                     </main>
-                    <footer className="p-4 text-center text-[9px] text-slate-400 border-t bg-slate-50 font-bold tracking-widest uppercase">
-                        Data Source: Central Weather Administration
+                    <footer className="p-4 text-center text-[10px] text-slate-400 bg-slate-50 border-t font-bold">
+                        數據源: 台灣中央氣象署 (CWA) 實測站
                     </footer>
                 </div>
             );
