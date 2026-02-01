@@ -11,23 +11,33 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://unpkg.com/lucide-react@latest"></script>
 </head>
-<body class="bg-slate-100 min-h-screen flex items-center justify-center p-0 md:p-6">
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-0 md:p-6 text-slate-800">
     <div id="root" class="w-full max-w-lg"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useMemo } = React;
+        const { useState, useEffect, useMemo, Fragment } = React;
 
-        // 安全取得圖標組件，徹底解決 Error #130
-        const Icon = ({ name, size = 20, className = "" }) => {
-            const lib = window.LucideReact || window.lucideReact;
-            const Component = lib ? lib[name] : null;
-            return Component ? <Component size={size} className={className} /> : <span style={{fontSize: size}}>📍</span>;
+        // 內嵌 SVG 圖標
+        const Icon = ({ name, className = "w-6 h-6" }) => {
+            const icons = {
+                Wind: <path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2m-6.8 6a2 2 0 1 1-1.4 3.4H2m16.7-16.8a3.5 3.5 0 1 1 3.1 6H2" />,
+                Rain: <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M16 14v6m-4-2v6m-4-4v6" />,
+                RefreshCw: <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8m0 0V3m0 5h5m-1 4a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16m0 0v5m0-5h-5" />,
+                Globe: <circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20M2 12h20" />,
+                Thermometer: <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" />,
+                CheckCircle: <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01" />,
+                XCircle: <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15" />
+            };
+            return (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                    {icons[name] || <circle cx="12" cy="12" r="10" />}
+                </svg>
+            );
         };
 
         const CWA_API_KEY = "CWA-BDD150F7-F455-44CA-8E6B-F548BBB011CB";
         const CWA_URL = "https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0003-001?format=JSON";
 
-        // 全台 368 鄉鎮市區完整清單
         const TAIWAN_DATA = {
             "台南市": ["中西區", "安平區", "東區", "南區", "北區", "安南區", "永康區", "歸仁區", "新化區", "左鎮區", "玉井區", "楠西區", "南化區", "仁德區", "關廟區", "龍崎區", "官田區", "麻豆區", "佳里區", "西港區", "七股區", "將軍區", "學甲區", "北門區", "新營區", "後壁區", "白河區", "東山區", "六甲區", "下營區", "柳營區", "鹽水區", "善化區", "大內區", "山上區", "新市區", "安定區"],
             "台北市": ["中正區", "大同區", "中山區", "松山區", "大安區", "萬華區", "信義區", "士林區", "北投區", "內湖區", "南港區", "文山區"],
@@ -63,7 +73,7 @@
 
         function App() {
             const [algo, setAlgo] = useState('strict');
-            const [city, setCity] = useState("台南市"); // 預設所在地
+            const [city, setCity] = useState("台南市");
             const [dist, setDist] = useState("中西區");
             const [indoor, setIndoor] = useState({ t: 24.0, h: 60 });
             const [outdoor, setOutdoor] = useState({ t: null, h: null, station: "", loading: false });
@@ -86,11 +96,13 @@
 
             useEffect(() => { refreshData(); }, [city, dist]);
 
+            // 計算室內露點
+            const indoorDP = useMemo(() => calculateDP(indoor.t, indoor.h), [indoor.t, indoor.h]);
+
             const analysis = useMemo(() => {
-                const inDP = calculateDP(indoor.t, indoor.h);
                 const outDP = calculateDP(outdoor.t, outdoor.h);
-                if (inDP === null || outDP === null) return null;
-                const dpDiff = (inDP - outDP).toFixed(1);
+                if (indoorDP === null || outDP === null) return null;
+                const dpDiff = (indoorDP - outDP).toFixed(1);
                 const tDiff = (outdoor.t - indoor.t).toFixed(1);
 
                 if (algo === 'strict') {
@@ -100,14 +112,14 @@
                         status: can ? 'open' : 'close',
                         color: can ? 'bg-emerald-600' : 'bg-slate-700',
                         title: can ? '建議開窗' : '建議關窗',
-                        reason: can ? '室內外露點差顯著，強效除濕中！' : '環境數據未達嚴格除濕標準。',
+                        reason: can ? '室內外露點差顯著，強效除濕中！' : '環境數據未達嚴格除濕標。',
                         items: [
                             { label: '露點差 (目標≥2.0)', val: dpDiff, pass: dOk },
                             { label: '溫差 (目標≤3.0)', val: tDiff, pass: tOk }
                         ]
                     };
                 } else {
-                    const sOk = outdoor.t > inDP, dOk = outDP < inDP;
+                    const sOk = outdoor.t > indoorDP, dOk = outDP < indoorDP;
                     const can = sOk && dOk;
                     return {
                         status: can ? 'open' : 'close',
@@ -120,7 +132,7 @@
                         ]
                     };
                 }
-            }, [indoor, outdoor, algo]);
+            }, [indoor.t, indoorDP, outdoor, algo]);
 
             return (
                 <div className="bg-white min-h-screen md:min-h-0 md:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden font-sans border border-slate-200">
@@ -140,6 +152,7 @@
                             <button onClick={()=>setAlgo('standard')} className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${algo==='standard'?'bg-white shadow text-slate-800':'text-slate-400'}`}>一般物理防潮</button>
                         </div>
 
+                        {/* 室外數據 */}
                         <section className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
                             <div className="flex justify-between items-center mb-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                                 <span className="flex items-center gap-1"><Icon name="Globe" size={12}/> 戶外測站 (CWA)</span>
@@ -154,17 +167,28 @@
                                 </select>
                             </div>
                             <div className="grid grid-cols-3 gap-2">
-                                <div className="bg-white p-3 rounded-2xl text-center border shadow-sm"><div className="text-[10px] text-slate-400 mb-1 font-bold">溫度</div><div className="text-lg font-black">{outdoor.t ?? '--'}°</div></div>
-                                <div className="bg-white p-3 rounded-2xl text-center border shadow-sm"><div className="text-[10px] text-slate-400 mb-1 font-bold">濕度</div><div className="text-lg font-black">{outdoor.h ?? '--'}%</div></div>
-                                <div className="bg-emerald-50 p-3 rounded-2xl text-center border border-emerald-100"><div className="text-[10px] text-emerald-600 font-bold mb-1">露點</div><div className="text-lg font-black text-emerald-600">{calculateDP(outdoor.t, outdoor.h) ?? '--'}°</div></div>
+                                <div className="bg-white p-3 rounded-2xl text-center border shadow-sm font-bold"><div className="text-[10px] text-slate-400 mb-1">溫度</div><div className="text-lg">{outdoor.t ?? '--'}°</div></div>
+                                <div className="bg-white p-3 rounded-2xl text-center border shadow-sm font-bold"><div className="text-[10px] text-slate-400 mb-1">濕度</div><div className="text-lg">{outdoor.h ?? '--'}%</div></div>
+                                <div className="bg-emerald-50 p-3 rounded-2xl text-center border border-emerald-100 font-bold"><div className="text-[10px] text-emerald-600 mb-1">露點</div><div className="text-lg text-emerald-600">{calculateDP(outdoor.t, outdoor.h) ?? '--'}°</div></div>
                             </div>
                         </section>
 
+                        {/* 室內數據 - 方案 B 整合佈局 */}
                         <section className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1 mb-3"><Icon name="Thermometer" size={12}/> 室內環境 (Indoor)</label>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div><label className="text-[9px] text-slate-400 font-bold mb-1 block">溫度 °C</label><input type="number" step="0.1" value={indoor.t} onChange={e=>setIndoor({...indoor, t: e.target.value})} className="w-full p-3 border rounded-xl font-black bg-white shadow-sm" /></div>
-                                <div><label className="text-[9px] text-slate-400 font-bold mb-1 block">濕度 %</label><input type="number" step="1" value={indoor.h} onChange={e=>setIndoor({...indoor, h: e.target.value})} className="w-full p-3 border rounded-xl font-black bg-white shadow-sm" /></div>
+                            <div className="grid grid-cols-3 gap-2">
+                                <div className="bg-white p-2 rounded-2xl border shadow-sm">
+                                    <div className="text-[9px] text-slate-400 font-bold mb-1 text-center">溫度 °C</div>
+                                    <input type="number" step="0.1" value={indoor.t} onChange={e=>setIndoor({...indoor, t: e.target.value})} className="w-full text-center text-lg font-black bg-transparent outline-none" />
+                                </div>
+                                <div className="bg-white p-2 rounded-2xl border shadow-sm">
+                                    <div className="text-[9px] text-slate-400 font-bold mb-1 text-center">濕度 %</div>
+                                    <input type="number" step="1" value={indoor.h} onChange={e=>setIndoor({...indoor, h: e.target.value})} className="w-full text-center text-lg font-black bg-transparent outline-none" />
+                                </div>
+                                <div className="bg-indigo-50 p-2 rounded-2xl border border-indigo-100 shadow-sm text-center font-bold">
+                                    <div className="text-[9px] text-indigo-600 mb-1">室內露點</div>
+                                    <div className="text-lg text-indigo-600 font-black">{indoorDP ?? '--'}°</div>
+                                </div>
                             </div>
                         </section>
 
@@ -203,4 +227,3 @@
     </script>
 </body>
 </html>
-
