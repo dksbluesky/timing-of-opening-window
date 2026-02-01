@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>開窗判斷助手</title>
+    <title>開窗判斷助手 - 全台通用版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -11,164 +11,185 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://unpkg.com/lucide-react@latest"></script>
 </head>
-<body class="bg-slate-100 min-h-screen flex items-center justify-center p-0 md:p-4">
-    <div id="root" class="w-full max-w-md"></div>
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-0 md:p-6">
+    <div id="root" class="w-full max-w-lg"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
-        const { Wind, Thermometer, Globe, CheckCircle, XCircle, AlertTriangle, RefreshCw, ChevronRight } = LucideReact;
+        const { Wind, Thermometer, Globe, CheckCircle, XCircle, RefreshCw, ChevronDown } = LucideReact;
 
-        // 全台主要地區資料 (可自行擴充)
-        const TAIWAN_LOCATIONS = {
-            "台南市": { "中西區": { lat: 22.992, lon: 120.197 }, "安平區": { lat: 22.998, lon: 120.165 }, "東區": { lat: 22.986, lon: 120.218 }, "永康區": { lat: 23.017, lon: 120.262 }, "善化區": { lat: 23.131, lon: 120.295 } },
-            "台北市": { "中正區": { lat: 25.032, lon: 121.519 }, "大安區": { lat: 25.026, lon: 121.543 }, "信義區": { lat: 25.033, lon: 121.565 }, "士林區": { lat: 25.092, lon: 121.525 } },
-            "新北市": { "板橋區": { lat: 25.014, lon: 121.463 }, "新莊區": { lat: 25.036, lon: 121.450 }, "淡水區": { lat: 25.176, lon: 121.446 } },
-            "台中市": { "西屯區": { lat: 24.163, lon: 120.640 }, "北屯區": { lat: 24.180, lon: 120.718 }, "南屯區": { lat: 24.137, lon: 120.643 } },
-            "高雄市": { "左營區": { lat: 22.693, lon: 120.297 }, "三民區": { lat: 22.646, lon: 120.309 }, "苓雅區": { lat: 22.623, lon: 120.312 } }
+        const CWA_API_KEY = "CWA-BDD150F7-F455-44CA-8E6B-F548BBB011CB";
+        const CWA_URL = "https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0003-001?format=JSON";
+
+        // 全台縣市與主要行政區資料
+        const TAIWAN_DATA = {
+            "台南市": ["中西區", "安平區", "東區", "南區", "北區", "安南區", "永康區", "歸仁區", "新化區", "左鎮區", "玉井區", "楠西區", "南化區", "仁德區", "關廟區", "龍崎區", "官田區", "麻豆區", "佳里區", "西港區", "七股區", "將軍區", "學甲區", "北門區", "新營區", "後壁區", "白河區", "東山區", "六甲區", "下營區", "柳營區", "鹽水區", "善化區", "大內區", "山上區", "新市區", "安定區"],
+            "台北市": ["中正區", "大同區", "中山區", "松山區", "大安區", "萬華區", "信義區", "士林區", "北投區", "內湖區", "南港區", "文山區"],
+            "新北市": ["板橋區", "三重區", "中和區", "永和區", "新莊區", "新店區", "樹林區", "鶯歌區", "三峽區", "淡水區", "汐止區", "瑞芳區", "土城區", "蘆洲區", "五股區", "泰山區", "林口區", "深坑區", "石碇區", "坪林區", "三芝區", "石門區", "八里區", "平溪區", "雙溪區", "貢寮區", "金山區", "萬里區", "烏來區"],
+            "台中市": ["中區", "東區", "南區", "西區", "北區", "北屯區", "西屯區", "南屯區", "太平區", "大里區", "霧峰區", "烏日區", "豐原區", "後里區", "石岡區", "東勢區", "和平區", "新社區", "潭子區", "大雅區", "神岡區", "大肚區", "沙鹿區", "龍井區", "梧棲區", "清水區", "大甲區", "外埔區", "大安區"],
+            "高雄市": ["新興區", "前金區", "苓雅區", "鹽埕區", "鼓山區", "旗津區", "前鎮區", "三民區", "楠梓區", "小港區", "左營區", "仁武區", "大社區", "岡山區", "路竹區", "阿蓮區", "田寮區", "燕巢區", "橋頭區", "梓官區", "彌陀區", "永安區", "湖內區", "鳳山區", "大寮區", "林園區", "鳥松區", "大樹區", "旗山區", "美濃區", "六龜區", "內門區", "杉林區", "甲仙區", "桃源區", "那瑪夏區", "茂林區", "茄萣區"],
+            "基隆市": ["仁愛區", "信義區", "中正區", "中山區", "安樂區", "暖暖區", "七堵區"],
+            "桃園市": ["桃園區", "中壢區", "大溪區", "楊梅區", "蘆竹區", "大園區", "龜山區", "八德區", "龍潭區", "平鎮區", "新屋區", "觀音區", "復興區"],
+            "新竹市": ["東區", "北區", "香山區"],
+            "新竹縣": ["竹北市", "竹東鎮", "新埔鎮", "關西鎮", "湖口鄉", "新豐鄉", "芎林鄉", "橫山鄉", "北埔鄉", "寶山鄉", "峨眉鄉", "尖石鄉", "五峰鄉"],
+            "苗栗縣": ["苗栗市", "頭份區", "竹南鎮", "後龍鎮", "通霄鎮", "苑裡鎮", "卓蘭鎮", "造橋鄉", "西湖鄉", "頭屋鄉", "公館鄉", "銅鑼鄉", "三義鄉", "大湖鄉", "獅潭鄉", "三灣鄉", "南庄鄉", "泰安鄉"],
+            "彰化縣": ["彰化市", "鹿港鎮", "和美鎮", "線西鄉", "伸港鄉", "福興鄉", "秀水鄉", "花壇鄉", "芬園鄉", "員林市", "溪湖鎮", "田中鎮", "大村鄉", "埔鹽鄉", "埔心鄉", "永靖鄉", "社頭鄉", "二水鄉", "北斗鎮", "二林鎮", "埤頭鄉", "芳苑鄉", "大城鄉", "竹塘鄉", "溪州鄉", "田尾鄉"],
+            "南投縣": ["南投市", "埔里鎮", "草屯鎮", "竹山鎮", "集集鎮", "名間鄉", "鹿谷鄉", "中寮鄉", "魚池鄉", "國姓鄉", "水里鄉", "信義鄉", "仁愛鄉"],
+            "雲林縣": ["斗六市", "斗南鎮", "虎尾鎮", "西螺鎮", "土庫鎮", "北港鎮", "古坑鄉", "大埤鄉", "莿桐鄉", "林內鄉", "二崙鄉", "崙背鄉", "麥寮鄉", "東勢鄉", "褒忠鄉", "台西鄉", "元長鄉", "四湖鄉", "口湖鄉", "水林鄉"],
+            "嘉義市": ["東區", "西區"],
+            "嘉義縣": ["太保市", "朴子市", "布袋鎮", "大林鎮", "民雄鄉", "溪口鄉", "新港鄉", "六腳鄉", "東石鄉", "義竹鄉", "鹿草鄉", "水上鄉", "中埔鄉", "竹崎鄉", "梅山鄉", "番路鄉", "大埔鄉", "阿里山"],
+            "屏東縣": ["屏東市", "三地門", "霧台鄉", "瑪家鄉", "九如鄉", "里港鄉", "高樹鄉", "鹽埔鄉", "長治鄉", "麟洛鄉", "竹田鄉", "內埔鄉", "萬丹鄉", "潮州鎮", "泰武鄉", "來義鄉", "萬巒鄉", "嵌頂鄉", "新埤鄉", "南州鄉", "林邊鄉", "東港鎮", "琉球鄉", "佳冬鄉", "新園鄉", "枋寮鄉", "枋山鄉", "春日鄉", "獅子鄉", "車城鄉", "牡丹鄉", "恆春鎮", "滿州鄉"],
+            "宜蘭縣": ["宜蘭市", "羅東鎮", "蘇澳鎮", "頭城鎮", "礁溪鄉", "壯圍鄉", "員山鄉", "冬山鄉", "五結鄉", "三星鄉", "大同鄉", "南澳鄉"],
+            "花蓮縣": ["花蓮市", "鳳林鎮", "玉里鎮", "新城鄉", "吉安鄉", "壽豐鄉", "光復鄉", "豐濱鄉", "瑞穗鄉", "富里鄉", "秀林鄉", "萬榮鄉", "卓溪鄉"],
+            "台東縣": ["台東市", "成功鎮", "關山鎮", "卑南鄉", "鹿野鄉", "池上鄉", "東河鄉", "長濱鄉", "太麻里", "大武鄉", "綠島鄉", "海端鄉", "延平鄉", "金峰鄉", "達仁鄉", "蘭嶼鄉"],
+            "澎湖縣": ["馬公市", "湖西鄉", "白沙鄉", "西嶼鄉", "望安鄉", "七美鄉"],
+            "金門縣": ["金城鎮", "金湖鎮", "金沙鎮", "金寧鄉", "烈嶼鄉", "烏坵鄉"],
+            "連江縣": ["南竿鄉", "北竿鄉", "莒光鄉", "東引鄉"]
         };
 
-        const calculateDewPoint = (T, RH) => {
-            if (T === "" || RH === "" || isNaN(T) || isNaN(RH)) return null;
+        const calculateDewPointValue = (T, RH) => {
+            const t = parseFloat(T), h = parseFloat(RH);
+            if (isNaN(t) || isNaN(h)) return null;
             const a = 17.27, b = 237.7;
-            const alpha = ((a * T) / (b + T)) + Math.log(RH / 100.0);
+            const alpha = ((a * t) / (b + t)) + Math.log(h / 100.0);
             return parseFloat(((b * alpha) / (a - alpha)).toFixed(1));
         };
 
         function App() {
-            // 預設為使用者所在地：台南市中西區
             const [algoMode, setAlgoMode] = useState('strict');
-            const [selectedCity, setSelectedCity] = useState("台南市");
-            const [selectedDistrict, setSelectedDistrict] = useState("中西區");
-            
-            const [indoorTemp, setIndoorTemp] = useState(24.0);
-            const [indoorHumid, setIndoorHumid] = useState(60);
+            const [city, setCity] = useState("台南市");
+            const [dist, setDist] = useState("中西區");
+            const [indoor, setIndoor] = useState({ t: 24.0, h: 60 });
+            const [outdoor, setOutdoor] = useState({ t: null, h: null, station: "", loading: false, error: null });
 
-            const [outdoor, setOutdoor] = useState({ temp: null, humid: null, loading: false });
+            const fetchCWA = async () => {
+                setOutdoor(prev => ({ ...prev, loading: true, error: null }));
+                try {
+                    const response = await fetch(`${CWA_URL}&Authorization=${CWA_API_KEY}&locationName=${encodeURIComponent(city)}`);
+                    const data = await response.json();
+                    if (!data.records.Station) throw new Error("無觀測資料");
+                    
+                    // 智慧配對：優先匹配鄉鎮名，否則選取該縣市第一個有效測站
+                    const stations = data.records.Station;
+                    const match = stations.find(s => s.GeoInfo.TownName === dist) || 
+                                  stations.find(s => s.WeatherElement.AirTemperature > -50) || 
+                                  stations[0];
+                    
+                    setOutdoor({
+                        t: match.WeatherElement.AirTemperature,
+                        h: match.WeatherElement.RelativeHumidity,
+                        station: `${match.StationName} (${match.GeoInfo.TownName || '鄰近地區'})`,
+                        loading: false, error: null
+                    });
+                } catch (err) {
+                    setOutdoor(prev => ({ ...prev, loading: false, error: "CWA API 連線失敗" }));
+                }
+            };
 
-            // 抓取天氣數據
-            useEffect(() => {
-                setOutdoor(prev => ({ ...prev, loading: true }));
-                const loc = TAIWAN_LOCATIONS[selectedCity][selectedDistrict];
-                fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&current=temperature_2m,relative_humidity_2m&timezone=auto`)
-                    .then(res => res.json())
-                    .then(data => {
-                        setOutdoor({ temp: data.current.temperature_2m, humid: data.current.relative_humidity_2m, loading: false });
-                    })
-                    .catch(() => setOutdoor(prev => ({ ...prev, loading: false })));
-            }, [selectedCity, selectedDistrict]);
+            useEffect(() => { fetchCWA(); }, [city, dist]);
 
             const calc = useMemo(() => {
-                const inDP = calculateDewPoint(indoorTemp, indoorHumid);
-                const outDP = calculateDewPoint(outdoor.temp, outdoor.humid);
+                const inDP = calculateDewPointValue(indoor.t, indoor.h);
+                const outDP = calculateDewPointValue(outdoor.t, outdoor.h);
                 if (inDP === null || outDP === null) return null;
 
                 const dpDiff = (inDP - outDP).toFixed(1);
-                const tDiff = (outdoor.temp - indoorTemp).toFixed(1);
+                const tDiff = (outdoor.t - indoor.t).toFixed(1);
 
                 if (algoMode === 'strict') {
-                    const dewPass = dpDiff >= 2.0;
-                    const tempPass = tDiff <= 3.0;
-                    const canOpen = dewPass && tempPass;
+                    const dOk = dpDiff >= 2.0, tOk = tDiff <= 3.0;
+                    const can = dOk && tOk;
                     return {
-                        status: canOpen ? 'open' : 'close',
-                        color: canOpen ? 'bg-emerald-600' : 'bg-slate-700',
-                        title: canOpen ? '建議開窗' : '建議關窗',
-                        reason: canOpen ? '戶外極其乾燥，強效除濕中！' : '未達嚴格除濕標準。',
+                        status: can ? 'open' : 'close',
+                        color: can ? 'bg-emerald-600' : 'bg-slate-700',
+                        title: can ? '建議開窗' : '建議關窗',
+                        reason: can ? '符合強效除濕標準！' : '大氣條件未達嚴格標準。',
                         checks: [
-                            { label: '露點差 (≥2.0)', value: dpDiff, pass: dewPass },
-                            { label: '溫差 (≤3.0)', value: tDiff, pass: tempPass }
+                            { label: '露點差 (內-外 ≥ 2.0)', val: dpDiff, pass: dOk },
+                            { label: '溫差 (外-內 ≤ 3.0)', val: tDiff, pass: tOk }
                         ]
                     };
                 } else {
-                    const antiCondense = outdoor.temp > inDP; // 防止結露
-                    const drier = outDP < inDP; // 戶外較乾
-                    const canOpen = antiCondense && drier;
+                    const sOk = outdoor.t > inDP, dOk = outDP < inDP;
+                    const can = sOk && dOk;
                     return {
-                        status: canOpen ? 'open' : 'close',
-                        color: !antiCondense ? 'bg-red-600' : (canOpen ? 'bg-blue-600' : 'bg-orange-500'),
-                        title: !antiCondense ? '反潮警報' : (canOpen ? '建議開窗' : '建議關窗'),
-                        reason: !antiCondense ? '戶外空氣會導致室內結露！' : (canOpen ? '戶外較乾燥，適合通風。' : '戶外濕氣仍重於室內。'),
+                        status: can ? 'open' : 'close',
+                        color: !sOk ? 'bg-red-600' : (can ? 'bg-blue-600' : 'bg-orange-500'),
+                        title: !sOk ? '反潮警報' : (can ? '建議開窗' : '建議關窗'),
+                        reason: !sOk ? '開窗將導致室內反潮結露！' : (can ? '戶外較乾，適合通風。' : '戶外濕氣仍重於室內。'),
                         checks: [
-                            { label: '防止反潮 (外溫>內露)', value: outdoor.temp, pass: antiCondense },
-                            { label: '物理除濕 (外露<內露)', value: outDP, pass: drier }
+                            { label: '防止反潮 (外溫 > 內露)', val: outdoor.t, pass: sOk },
+                            { label: '物理除濕 (外露 < 內露)', val: outDP, pass: dOk }
                         ]
                     };
                 }
-            }, [indoorTemp, indoorHumid, outdoor, algoMode]);
+            }, [indoor, outdoor, algoMode]);
 
             return (
-                <div className="bg-white min-h-screen md:min-h-0 md:rounded-3xl shadow-2xl overflow-hidden flex flex-col">
-                    <header className="bg-slate-900 text-white p-5 flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                            <Wind className="text-emerald-400" size={24} />
-                            <h1 className="text-xl font-bold tracking-tight">開窗判斷助手</h1>
+                <div className="bg-white min-h-screen md:min-h-0 md:rounded-[2rem] shadow-2xl overflow-hidden flex flex-col font-sans">
+                    <header className="bg-slate-900 text-white p-6 shadow-lg">
+                        <div className="flex justify-between items-center mb-1">
+                            <div className="flex items-center gap-2">
+                                <Wind className="text-emerald-400" size={24} />
+                                <h1 className="text-xl font-black tracking-tight">開窗判斷助手</h1>
+                            </div>
+                            <button onClick={fetchCWA} className="p-2 bg-white/10 rounded-full active:scale-95 transition-all">
+                                <RefreshCw size={18} className={outdoor.loading ? 'animate-spin' : ''} />
+                            </button>
                         </div>
-                        <div className="text-[10px] opacity-50 font-mono">2026-02-01</div>
+                        <div className="text-[10px] text-emerald-400/70 font-mono tracking-widest uppercase">Central Weather Administration Pro</div>
                     </header>
 
-                    <main className="p-4 space-y-5 flex-1 overflow-y-auto">
-                        {/* 模式切換 */}
+                    <main className="p-4 space-y-4 flex-1 overflow-y-auto">
                         <div className="flex bg-slate-100 p-1 rounded-2xl shadow-inner">
-                            <button onClick={()=>setAlgoMode('strict')} className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${algoMode==='strict'?'bg-white shadow text-slate-800':'text-slate-400'}`}>嚴格強效除濕</button>
-                            <button onClick={()=>setAlgoMode('standard')} className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${algoMode==='standard'?'bg-white shadow text-slate-800':'text-slate-400'}`}>一般物理防潮</button>
+                            <button onClick={()=>setAlgoMode('strict')} className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${algoMode==='strict'?'bg-white shadow-md text-slate-800':'text-slate-400'}`}>嚴格強效除濕</button>
+                            <button onClick={()=>setAlgoMode('standard')} className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${algoMode==='standard'?'bg-white shadow-md text-slate-800':'text-slate-400'}`}>一般物理防潮</button>
                         </div>
 
-                        {/* 1. 戶外環境選擇與顯示 */}
                         <section className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                            <div className="flex items-center gap-2 mb-3 text-slate-500 font-bold text-sm">
-                                <Globe size={16}/> 戶外數據 (Outdoor)
+                            <div className="flex items-center justify-between mb-3">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1"><Globe size={12}/> 戶外測站 (Outdoor)</label>
+                                <span className="text-[9px] bg-slate-200 px-2 py-0.5 rounded text-slate-500 font-bold">{outdoor.station || '定位中...'}</span>
                             </div>
                             <div className="grid grid-cols-2 gap-2 mb-4">
-                                <select value={selectedCity} onChange={e=>{setSelectedCity(e.target.value); setSelectedDistrict(Object.keys(TAIWAN_LOCATIONS[e.target.value])[0])}} className="bg-white border p-3 rounded-xl text-sm outline-none focus:ring-2 ring-emerald-500 transition-all">
-                                    {Object.keys(TAIWAN_LOCATIONS).map(c=><option key={c}>{c}</option>)}
+                                <select value={city} onChange={e=>{setCity(e.target.value); setDist(TAIWAN_DATA[e.target.value][0])}} className="bg-white border p-3 rounded-xl text-sm font-bold shadow-sm outline-none">
+                                    {Object.keys(TAIWAN_DATA).map(c=><option key={c}>{c}</option>)}
                                 </select>
-                                <select value={selectedDistrict} onChange={e=>setSelectedDistrict(e.target.value)} className="bg-white border p-3 rounded-xl text-sm outline-none">
-                                    {Object.keys(TAIWAN_LOCATIONS[selectedCity]).map(d=><option key={d}>{d}</option>)}
+                                <select value={dist} onChange={e=>setDist(e.target.value)} className="bg-white border p-3 rounded-xl text-sm font-bold shadow-sm outline-none">
+                                    {TAIWAN_DATA[city].map(d=><option key={d}>{d}</option>)}
                                 </select>
                             </div>
                             <div className="grid grid-cols-3 gap-2">
-                                <div className="bg-white p-2 rounded-xl text-center shadow-sm"><div className="text-[10px] text-slate-400">溫度</div><div className="font-bold">{outdoor.temp ?? '--'}°</div></div>
-                                <div className="bg-white p-2 rounded-xl text-center shadow-sm"><div className="text-[10px] text-slate-400">濕度</div><div className="font-bold">{outdoor.humid ?? '--'}%</div></div>
-                                <div className="bg-emerald-50 p-2 rounded-xl text-center border border-emerald-100"><div className="text-[10px] text-emerald-600 font-bold">露點</div><div className="font-bold text-emerald-600">{calculateDewPoint(outdoor.temp, outdoor.humid) ?? '--'}°</div></div>
+                                <div className="bg-white p-3 rounded-2xl text-center border shadow-sm"><div className="text-[10px] text-slate-400 mb-1">溫度</div><div className="text-lg font-black">{outdoor.t ?? '--'}°</div></div>
+                                <div className="bg-white p-3 rounded-2xl text-center border shadow-sm"><div className="text-[10px] text-slate-400 mb-1">濕度</div><div className="text-lg font-black">{outdoor.h ?? '--'}%</div></div>
+                                <div className="bg-emerald-50 p-3 rounded-2xl text-center border border-emerald-100"><div className="text-[10px] text-emerald-600 font-bold mb-1">露點</div><div className="text-lg font-black text-emerald-600">{calculateDewPointValue(outdoor.t, outdoor.h) ?? '--'}°</div></div>
                             </div>
                         </section>
 
-                        {/* 2. 室內環境輸入 */}
                         <section className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                            <div className="flex items-center gap-2 mb-3 text-slate-500 font-bold text-sm">
-                                <Thermometer size={16}/> 室內環境 (Indoor)
-                            </div>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1 mb-3"><Thermometer size={12}/> 室內環境 (Indoor)</label>
                             <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-[10px] text-slate-400 font-bold ml-1">溫度 °C</label>
-                                    <input type="number" step="0.1" value={indoorTemp} onChange={e=>setIndoorTemp(e.target.value)} className="w-full p-3 border rounded-xl font-bold text-slate-700 bg-white" />
-                                </div>
-                                <div>
-                                    <label className="text-[10px] text-slate-400 font-bold ml-1">濕度 %</label>
-                                    <input type="number" step="1" value={indoorHumid} onChange={e=>setIndoorHumid(e.target.value)} className="w-full p-3 border rounded-xl font-bold text-slate-700 bg-white" />
-                                </div>
+                                <div><label className="text-[9px] text-slate-400 font-bold mb-1 block">溫度 °C</label><input type="number" step="0.1" value={indoor.t} onChange={e=>setIndoor({...indoor, t: e.target.value})} className="w-full p-3 border rounded-xl font-black bg-white shadow-sm" /></div>
+                                <div><label className="text-[9px] text-slate-400 font-bold mb-1 block">濕度 %</label><input type="number" step="1" value={indoor.h} onChange={e=>setIndoor({...indoor, h: e.target.value})} className="w-full p-3 border rounded-xl font-black bg-white shadow-sm" /></div>
                             </div>
                         </section>
 
-                        {/* 3. 判斷結果區塊 */}
                         {calc && (
-                            <section className={`${calc.color} p-6 rounded-[2rem] text-white shadow-xl transition-all duration-500`}>
-                                <div className="flex items-center gap-3 mb-2">
-                                    {calc.status === 'open' ? <CheckCircle size={32}/> : <XCircle size={32}/>}
-                                    <h2 className="text-3xl font-black tracking-tight">{calc.title}</h2>
+                            <section className={`${calc.color} p-6 rounded-[2.5rem] text-white shadow-2xl transition-all duration-500`}>
+                                <div className="flex items-center gap-4 mb-3">
+                                    <div className="bg-white/20 p-2 rounded-2xl">{calc.status === 'open' ? <CheckCircle size={32}/> : <XCircle size={32}/>}</div>
+                                    <h2 className="text-3xl font-black tracking-tighter">{calc.title}</h2>
                                 </div>
-                                <p className="text-sm font-medium mb-5 opacity-90">{calc.reason}</p>
-
-                                <div className="space-y-3">
-                                    <div className="text-[10px] uppercase tracking-widest font-bold opacity-60">邏輯判定對照</div>
+                                <p className="text-sm font-medium mb-6 opacity-90 pl-1">{calc.reason}</p>
+                                <div className="space-y-2">
                                     {calc.checks.map((check, i) => (
-                                        <div key={i} className="bg-black/20 backdrop-blur-md rounded-2xl p-3 flex justify-between items-center border border-white/10">
+                                        <div key={i} className={`bg-black/10 backdrop-blur-md rounded-2xl p-4 flex justify-between items-center border ${check.pass ? 'border-white/20' : 'border-red-400/40'}`}>
                                             <div>
-                                                <div className="text-[10px] opacity-70 font-bold">{check.label}</div>
-                                                <div className="text-xl font-mono font-black">{check.value}</div>
+                                                <div className="text-[10px] font-bold opacity-60 uppercase tracking-tighter mb-1">{check.label}</div>
+                                                <div className="text-2xl font-mono font-black">{check.val}</div>
                                             </div>
-                                            <div className={`p-1 rounded-full ${check.pass ? 'bg-emerald-400/20 text-emerald-300' : 'bg-red-400/20 text-red-300'}`}>
-                                                {check.pass ? <CheckCircle size={20}/> : <XCircle size={20}/>}
+                                            <div className={check.pass ? 'text-emerald-300' : 'text-red-300'}>
+                                                {check.pass ? <CheckCircle size={24}/> : <XCircle size={24}/>}
                                             </div>
                                         </div>
                                     ))}
@@ -176,8 +197,8 @@
                             </section>
                         )}
                     </main>
-                    <footer className="p-4 text-center text-[10px] text-slate-400">
-                        數據源: Open-Meteo 全球氣象模型
+                    <footer className="p-4 text-center text-[10px] text-slate-400 bg-slate-50 border-t font-medium">
+                        資料來源：中央氣象署觀測資料
                     </footer>
                 </div>
             );
