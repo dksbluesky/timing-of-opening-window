@@ -5,56 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>開窗判斷助手</title>
     
-    <!-- 1. 載入 Tailwind CSS (樣式庫) -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- 2. 載入 Babel (讓瀏覽器看懂 React/JSX) -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-    <!-- 3. 設定 React 模組載入 -->
-    <script type="importmap">
-    {
-        "imports": {
-            "react": "https://esm.sh/react@18.2.0",
-            "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-            "lucide-react": "https://esm.sh/lucide-react@0.263.1"
-        }
-    }
-    </script>
 </head>
 <body class="bg-slate-100">
-    <!-- React 程式的掛載點 -->
     <div id="root"></div>
 
-    <!-- 4. 您的 React 程式碼 -->
     <script type="text/babel" data-type="module">
-        import React, { useState, useEffect, useMemo } from 'react';
-        import { createRoot } from 'react-dom/client';
-        import { Wind, Thermometer, MapPin, AlertTriangle, CheckCircle, XCircle, RefreshCw, Settings, Globe } from 'lucide-react';
+        import React, { useState, useEffect, useMemo } from 'https://esm.sh/react@18.2.0';
+        import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
+        // 關鍵點：必須加上 ?external=react 避免重複載入 React 導致 Hook 失效
+        import { Wind, Thermometer, MapPin, AlertTriangle, CheckCircle, XCircle, RefreshCw, Settings, Globe } from 'https://esm.sh/lucide-react@0.263.1?external=react';
 
-        // --- 全台行政區資料庫 ---
         const TAIWAN_LOCATIONS = {
-        "基隆市": { "仁愛區": { lat: 25.128, lon: 121.742 }, "信義區": { lat: 25.128, lon: 121.758 }, "中正區": { lat: 25.141, lon: 121.756 }, "中山區": { lat: 25.148, lon: 121.733 }, "安樂區": { lat: 25.133, lon: 121.716 }, "七堵區": { lat: 25.094, lon: 121.712 } },
-        "台北市": { "中正區": { lat: 25.032, lon: 121.519 }, "大安區": { lat: 25.026, lon: 121.543 }, "信義區": { lat: 25.033, lon: 121.565 }, "士林區": { lat: 25.092, lon: 121.525 }, "北投區": { lat: 25.132, lon: 121.498 }, "內湖區": { lat: 25.074, lon: 121.581 }, "南港區": { lat: 25.055, lon: 121.610 }, "松山區": { lat: 25.058, lon: 121.558 }, "萬華區": { lat: 25.035, lon: 121.499 }, "文山區": { lat: 24.998, lon: 121.559 }, "大同區": { lat: 25.063, lon: 121.513 }, "中山區": { lat: 25.064, lon: 121.533 } },
-        "新北市": { "板橋區": { lat: 25.014, lon: 121.463 }, "新莊區": { lat: 25.036, lon: 121.450 }, "中和區": { lat: 24.993, lon: 121.503 }, "永和區": { lat: 25.008, lon: 121.513 }, "淡水區": { lat: 25.176, lon: 121.446 }, "林口區": { lat: 25.077, lon: 121.393 }, "三重區": { lat: 25.063, lon: 121.492 }, "蘆洲區": { lat: 25.083, lon: 121.472 }, "新店區": { lat: 24.967, lon: 121.542 }, "汐止區": { lat: 25.067, lon: 121.659 }, "土城區": { lat: 24.973, lon: 121.444 }, "樹林區": { lat: 24.991, lon: 121.416 }, "三峽區": { lat: 24.934, lon: 121.368 }, "鶯歌區": { lat: 24.954, lon: 121.348 }, "五股區": { lat: 25.084, lon: 121.439 }, "泰山區": { lat: 25.057, lon: 121.432 } },
-        "桃園市": { "桃園區": { lat: 24.993, lon: 121.301 }, "中壢區": { lat: 24.965, lon: 121.225 }, "龜山區": { lat: 25.000, lon: 121.346 }, "八德區": { lat: 24.947, lon: 121.296 }, "楊梅區": { lat: 24.908, lon: 121.145 }, "蘆竹區": { lat: 25.048, lon: 121.291 }, "大溪區": { lat: 24.881, lon: 121.286 }, "龍潭區": { lat: 24.863, lon: 121.216 }, "平鎮區": { lat: 24.942, lon: 121.215 }, "大園區": { lat: 25.064, lon: 121.196 }, "觀音區": { lat: 25.036, lon: 121.082 }, "新屋區": { lat: 24.972, lon: 121.018 } },
-        "新竹市": { "東區": { lat: 24.795, lon: 120.992 }, "北區": { lat: 24.819, lon: 120.957 }, "香山區": { lat: 24.770, lon: 120.941 } },
-        "新竹縣": { "竹北市": { lat: 24.839, lon: 121.009 }, "竹東鎮": { lat: 24.739, lon: 121.094 }, "新豐鄉": { lat: 24.899, lon: 120.993 }, "湖口鄉": { lat: 24.904, lon: 121.044 }, "新埔鎮": { lat: 24.827, lon: 121.074 }, "關西鎮": { lat: 24.794, lon: 121.171 }, "芎林鄉": { lat: 24.774, lon: 121.082 }, "寶山鄉": { lat: 24.761, lon: 121.037 } },
-        "苗栗縣": { "苗栗市": { lat: 24.564, lon: 120.820 }, "頭份市": { lat: 24.687, lon: 120.910 }, "竹南鎮": { lat: 24.686, lon: 120.879 }, "苑裡鎮": { lat: 24.442, lon: 120.648 }, "後龍鎮": { lat: 24.613, lon: 120.787 }, "通霄鎮": { lat: 24.490, lon: 120.678 }, "公館鄉": { lat: 24.502, lon: 120.825 }, "銅鑼鄉": { lat: 24.485, lon: 120.788 } },
-        "台中市": { "中區": { lat: 24.145, lon: 120.678 }, "西屯區": { lat: 24.163, lon: 120.640 }, "北屯區": { lat: 24.180, lon: 120.718 }, "南屯區": { lat: 24.137, lon: 120.643 }, "西區": { lat: 24.140, lon: 120.663 }, "南區": { lat: 24.122, lon: 120.666 }, "北區": { lat: 24.166, lon: 120.679 }, "豐原區": { lat: 24.256, lon: 120.723 }, "大里區": { lat: 24.099, lon: 120.694 }, "太平區": { lat: 24.126, lon: 120.718 }, "東勢區": { lat: 24.258, lon: 120.829 }, "大甲區": { lat: 24.346, lon: 120.622 }, "清水區": { lat: 24.269, lon: 120.574 }, "沙鹿區": { lat: 24.234, lon: 120.560 }, "梧棲區": { lat: 24.254, lon: 120.536 }, "烏日區": { lat: 24.105, lon: 120.623 } },
-        "彰化縣": { "彰化市": { lat: 24.081, lon: 120.538 }, "員林市": { lat: 23.959, lon: 120.570 }, "鹿港鎮": { lat: 24.058, lon: 120.435 }, "和美鎮": { lat: 24.110, lon: 120.500 }, "北斗鎮": { lat: 23.872, lon: 120.525 }, "溪湖鎮": { lat: 23.960, lon: 120.479 }, "田中鎮": { lat: 23.859, lon: 120.589 }, "二林鎮": { lat: 23.899, lon: 120.373 } },
-        "南投縣": { "南投市": { lat: 23.910, lon: 120.686 }, "埔里鎮": { lat: 23.965, lon: 120.969 }, "草屯鎮": { lat: 23.978, lon: 120.684 }, "竹山鎮": { lat: 23.755, lon: 120.681 }, "集集鎮": { lat: 23.829, lon: 120.785 }, "名間鄉": { lat: 23.839, lon: 120.686 }, "鹿谷鄉": { lat: 23.744, lon: 120.751 }, "魚池鄉": { lat: 23.897, lon: 120.936 } },
-        "雲林縣": { "斗六市": { lat: 23.709, lon: 120.543 }, "虎尾鎮": { lat: 23.708, lon: 120.435 }, "斗南鎮": { lat: 23.676, lon: 120.479 }, "西螺鎮": { lat: 23.795, lon: 120.460 }, "土庫鎮": { lat: 23.676, lon: 120.393 }, "北港鎮": { lat: 23.575, lon: 120.306 }, "麥寮鄉": { lat: 23.755, lon: 120.252 }, "古坑鄉": { lat: 23.645, lon: 120.560 } },
-        "嘉義市": { "東區": { lat: 23.486, lon: 120.461 }, "西區": { lat: 23.479, lon: 120.432 } },
-        "嘉義縣": { "太保市": { lat: 23.459, lon: 120.332 }, "朴子市": { lat: 23.465, lon: 120.247 }, "布袋鎮": { lat: 23.378, lon: 120.165 }, "大林鎮": { lat: 23.601, lon: 120.473 }, "民雄鄉": { lat: 23.551, lon: 120.431 }, "水上鄉": { lat: 23.429, lon: 120.413 }, "中埔鄉": { lat: 23.426, lon: 120.520 }, "竹崎鄉": { lat: 23.522, lon: 120.552 } },
-        "台南市": { "中西區": { lat: 22.992, lon: 120.197 }, "安平區": { lat: 22.998, lon: 120.165 }, "永康區": { lat: 23.017, lon: 120.262 }, "東區": { lat: 22.986, lon: 120.218 }, "北區": { lat: 23.007, lon: 120.207 }, "南區": { lat: 22.959, lon: 120.184 }, "安南區": { lat: 23.047, lon: 120.183 }, "歸仁區": { lat: 22.969, lon: 120.295 }, "仁德區": { lat: 22.971, lon: 120.252 }, "新化區": { lat: 23.038, lon: 120.309 }, "善化區": { lat: 23.131, lon: 120.295 }, "新市區": { lat: 23.076, lon: 120.294 } },
-        "高雄市": { "苓雅區": { lat: 22.623, lon: 120.312 }, "左營區": { lat: 22.693, lon: 120.297 }, "鳳山區": { lat: 22.626, lon: 120.357 }, "鼓山區": { lat: 22.651, lon: 120.274 }, "三民區": { lat: 22.646, lon: 120.309 }, "前鎮區": { lat: 22.592, lon: 120.316 }, "旗津區": { lat: 22.569, lon: 120.278 }, "小港區": { lat: 22.565, lon: 120.355 }, "楠梓區": { lat: 22.729, lon: 120.326 }, "岡山區": { lat: 22.796, lon: 120.296 }, "仁武區": { lat: 22.699, lon: 120.347 }, "大寮區": { lat: 22.605, lon: 120.395 } },
-        "屏東縣": { "屏東市": { lat: 22.669, lon: 120.486 }, "潮州鎮": { lat: 22.550, lon: 120.542 }, "東港鎮": { lat: 22.467, lon: 120.453 }, "恆春鎮": { lat: 22.003, lon: 120.743 }, "萬丹鄉": { lat: 22.590, lon: 120.485 }, "長治鄉": { lat: 22.679, lon: 120.528 }, "九如鄉": { lat: 22.739, lon: 120.488 }, "里港鄉": { lat: 22.778, lon: 120.495 } },
-        "宜蘭縣": { "宜蘭市": { lat: 24.757, lon: 121.752 }, "羅東鎮": { lat: 24.675, lon: 121.767 }, "蘇澳鎮": { lat: 24.594, lon: 121.841 }, "頭城鎮": { lat: 24.858, lon: 121.823 }, "礁溪鄉": { lat: 24.825, lon: 121.770 }, "壯圍鄉": { lat: 24.745, lon: 121.782 }, "五結鄉": { lat: 24.693, lon: 121.795 }, "冬山鄉": { lat: 24.634, lon: 121.792 } },
-        "花蓮縣": { "花蓮市": { lat: 23.976, lon: 121.606 }, "鳳林鎮": { lat: 23.745, lon: 121.450 }, "玉里鎮": { lat: 23.336, lon: 121.310 }, "吉安鄉": { lat: 23.960, lon: 121.568 }, "新城鄉": { lat: 24.025, lon: 121.623 }, "壽豐鄉": { lat: 23.871, lon: 121.507 }, "光復鄉": { lat: 23.666, lon: 121.423 }, "瑞穗鄉": { lat: 23.498, lon: 121.378 } },
-        "台東縣": { "台東市": { lat: 22.756, lon: 121.144 }, "成功鎮": { lat: 23.100, lon: 121.378 }, "關山鎮": { lat: 23.048, lon: 121.163 }, "卑南鄉": { lat: 22.787, lon: 121.092 }, "鹿野鄉": { lat: 22.912, lon: 121.157 }, "池上鄉": { lat: 23.122, lon: 121.216 }, "東河鄉": { lat: 22.969, lon: 121.302 }, "太麻里": { lat: 22.615, lon: 121.006 } },
-        "澎湖縣": { "馬公市": { lat: 23.565, lon: 119.563 } },
-        "金門縣": { "金城鎮": { lat: 24.417, lon: 118.317 } },
+            "基隆市": { "仁愛區": { lat: 25.128, lon: 121.742 }, "信義區": { lat: 25.128, lon: 121.758 }, "中正區": { lat: 25.141, lon: 121.756 }, "中山區": { lat: 25.148, lon: 121.733 }, "安樂區": { lat: 25.133, lon: 121.716 }, "七堵區": { lat: 25.094, lon: 121.712 } },
+            "台北市": { "中正區": { lat: 25.032, lon: 121.519 }, "大安區": { lat: 25.026, lon: 121.543 }, "信義區": { lat: 25.033, lon: 121.565 }, "士林區": { lat: 25.092, lon: 121.525 }, "北投區": { lat: 25.132, lon: 121.498 }, "內湖區": { lat: 25.074, lon: 121.581 }, "南港區": { lat: 25.055, lon: 121.610 }, "松山區": { lat: 25.058, lon: 121.558 }, "萬華區": { lat: 25.035, lon: 121.499 }, "文山區": { lat: 24.998, lon: 121.559 }, "大同區": { lat: 25.063, lon: 121.513 }, "中山區": { lat: 25.064, lon: 121.533 } },
+            "新北市": { "板橋區": { lat: 25.014, lon: 121.463 }, "新莊區": { lat: 25.036, lon: 121.450 }, "中和區": { lat: 24.993, lon: 121.503 }, "永和區": { lat: 25.008, lon: 121.513 }, "淡水區": { lat: 25.176, lon: 121.446 }, "林口區": { lat: 25.077, lon: 121.393 }, "三重區": { lat: 25.063, lon: 121.492 }, "蘆洲區": { lat: 25.083, lon: 121.472 }, "新店區": { lat: 24.967, lon: 121.542 }, "汐止區": { lat: 25.067, lon: 121.659 }, "土城區": { lat: 24.973, lon: 121.444 }, "樹林區": { lat: 24.991, lon: 121.416 }, "三峽區": { lat: 24.934, lon: 121.368 }, "鶯歌區": { lat: 24.954, lon: 121.348 }, "五股區": { lat: 25.084, lon: 121.439 }, "泰山區": { lat: 25.057, lon: 121.432 } },
+            "桃園市": { "桃園區": { lat: 24.993, lon: 121.301 }, "中壢區": { lat: 24.965, lon: 121.225 }, "龜山區": { lat: 25.000, lon: 121.346 }, "八德區": { lat: 24.947, lon: 121.296 }, "楊梅區": { lat: 24.908, lon: 121.145 }, "蘆竹區": { lat: 25.048, lon: 121.291 }, "大溪區": { lat: 24.881, lon: 121.286 }, "龍潭區": { lat: 24.863, lon: 121.216 }, "平鎮區": { lat: 24.942, lon: 121.215 }, "大園區": { lat: 25.064, lon: 121.196 }, "觀音區": { lat: 25.036, lon: 121.082 }, "新屋區": { lat: 24.972, lon: 121.018 } },
+            "新竹市": { "東區": { lat: 24.795, lon: 120.992 }, "北區": { lat: 24.819, lon: 120.957 }, "香山區": { lat: 24.770, lon: 120.941 } },
+            "新竹縣": { "竹北市": { lat: 24.839, lon: 121.009 }, "竹東鎮": { lat: 24.739, lon: 121.094 }, "新豐鄉": { lat: 24.899, lon: 120.993 }, "湖口鄉": { lat: 24.904, lon: 121.044 }, "新埔鎮": { lat: 24.827, lon: 121.074 }, "關西鎮": { lat: 24.794, lon: 121.171 }, "芎林鄉": { lat: 24.774, lon: 121.082 }, "寶山鄉": { lat: 24.761, lon: 121.037 } },
+            "苗栗縣": { "苗栗市": { lat: 24.564, lon: 120.820 }, "頭份市": { lat: 24.687, lon: 120.910 }, "竹南鎮": { lat: 24.686, lon: 120.879 }, "苑裡鎮": { lat: 24.442, lon: 120.648 }, "後龍鎮": { lat: 24.613, lon: 120.787 }, "通霄鎮": { lat: 24.490, lon: 120.678 }, "公館鄉": { lat: 24.502, lon: 120.825 }, "銅鑼鄉": { lat: 24.485, lon: 120.788 } },
+            "台中市": { "中區": { lat: 24.145, lon: 120.678 }, "西屯區": { lat: 24.163, lon: 120.640 }, "北屯區": { lat: 24.180, lon: 120.718 }, "南屯區": { lat: 24.137, lon: 120.643 }, "西區": { lat: 24.140, lon: 120.663 }, "南區": { lat: 24.122, lon: 120.666 }, "北區": { lat: 24.166, lon: 120.679 }, "豐原區": { lat: 24.256, lon: 120.723 }, "大里區": { lat: 24.099, lon: 120.694 }, "太平區": { lat: 24.126, lon: 120.718 }, "東勢區": { lat: 24.258, lon: 120.829 }, "大甲區": { lat: 24.346, lon: 120.622 }, "清水區": { lat: 24.269, lon: 120.574 }, "沙鹿區": { lat: 24.234, lon: 120.560 }, "梧棲區": { lat: 24.254, lon: 120.536 }, "烏日區": { lat: 24.105, lon: 120.623 } },
+            "彰化縣": { "彰化市": { lat: 24.081, lon: 120.538 }, "員林市": { lat: 23.959, lon: 120.570 }, "鹿港鎮": { lat: 24.058, lon: 120.435 }, "和美鎮": { lat: 24.110, lon: 120.500 }, "北斗鎮": { lat: 23.872, lon: 120.525 }, "溪湖鎮": { lat: 23.960, lon: 120.479 }, "田中鎮": { lat: 23.859, lon: 120.589 }, "二林鎮": { lat: 23.899, lon: 120.373 } },
+            "南投縣": { "南投市": { lat: 23.910, lon: 120.686 }, "埔里鎮": { lat: 23.965, lon: 120.969 }, "草屯鎮": { lat: 23.978, lon: 120.684 }, "竹山鎮": { lat: 23.755, lon: 120.681 }, "集集鎮": { lat: 23.829, lon: 120.785 }, "名間鄉": { lat: 23.839, lon: 120.686 }, "鹿谷鄉": { lat: 23.744, lon: 120.751 }, "魚池鄉": { lat: 23.897, lon: 120.936 } },
+            "雲林縣": { "斗六市": { lat: 23.709, lon: 120.543 }, "虎尾鎮": { lat: 23.708, lon: 120.435 }, "斗南鎮": { lat: 23.676, lon: 120.479 }, "西螺鎮": { lat: 23.795, lon: 120.460 }, "土庫鎮": { lat: 23.676, lon: 120.393 }, "北港鎮": { lat: 23.575, lon: 120.306 }, "麥寮鄉": { lat: 23.755, lon: 120.252 }, "古坑鄉": { lat: 23.645, lon: 120.560 } },
+            "嘉義市": { "東區": { lat: 23.486, lon: 120.461 }, "西區": { lat: 23.479, lon: 120.432 } },
+            "嘉義縣": { "太保市": { lat: 23.459, lon: 120.332 }, "朴子市": { lat: 23.465, lon: 120.247 }, "布袋鎮": { lat: 23.378, lon: 120.165 }, "大林鎮": { lat: 23.601, lon: 120.473 }, "民雄鄉": { lat: 23.551, lon: 120.431 }, "水上鄉": { lat: 23.429, lon: 120.413 }, "中埔鄉": { lat: 23.426, lon: 120.520 }, "竹崎鄉": { lat: 23.522, lon: 120.552 } },
+            "台南市": { "中西區": { lat: 22.992, lon: 120.197 }, "安平區": { lat: 22.998, lon: 120.165 }, "永康區": { lat: 23.017, lon: 120.262 }, "東區": { lat: 22.986, lon: 120.218 }, "北區": { lat: 23.007, lon: 120.207 }, "南區": { lat: 22.959, lon: 120.184 }, "安南區": { lat: 23.047, lon: 120.183 }, "歸仁區": { lat: 22.969, lon: 120.295 }, "仁德區": { lat: 22.971, lon: 120.252 }, "新化區": { lat: 23.038, lon: 120.309 }, "善化區": { lat: 23.131, lon: 120.295 }, "新市區": { lat: 23.076, lon: 120.294 } },
+            "高雄市": { "苓雅區": { lat: 22.623, lon: 120.312 }, "左營區": { lat: 22.693, lon: 120.297 }, "鳳山區": { lat: 22.626, lon: 120.357 }, "鼓山區": { lat: 22.651, lon: 120.274 }, "三民區": { lat: 22.646, lon: 120.309 }, "前鎮區": { lat: 22.592, lon: 120.316 }, "旗津區": { lat: 22.569, lon: 120.278 }, "小港區": { lat: 22.565, lon: 120.355 }, "楠梓區": { lat: 22.729, lon: 120.326 }, "岡山區": { lat: 22.796, lon: 120.296 }, "仁武區": { lat: 22.699, lon: 120.347 }, "大寮區": { lat: 22.605, lon: 120.395 } },
+            "屏東縣": { "屏東市": { lat: 22.669, lon: 120.486 }, "潮州鎮": { lat: 22.550, lon: 120.542 }, "東港鎮": { lat: 22.467, lon: 120.453 }, "恆春鎮": { lat: 22.003, lon: 120.743 }, "萬丹鄉": { lat: 22.590, lon: 120.485 }, "長治鄉": { lat: 22.679, lon: 120.528 }, "九如鄉": { lat: 22.739, lon: 120.488 }, "里港鄉": { lat: 22.778, lon: 120.495 } },
+            "宜蘭縣": { "宜蘭市": { lat: 24.757, lon: 121.752 }, "羅東鎮": { lat: 24.675, lon: 121.767 }, "蘇澳鎮": { lat: 24.594, lon: 121.841 }, "頭城鎮": { lat: 24.858, lon: 121.823 }, "礁溪鄉": { lat: 24.825, lon: 121.770 }, "壯圍鄉": { lat: 24.745, lon: 121.782 }, "五結鄉": { lat: 24.693, lon: 121.795 }, "冬山鄉": { lat: 24.634, lon: 121.792 } },
+            "花蓮縣": { "花蓮市": { lat: 23.976, lon: 121.606 }, "鳳林鎮": { lat: 23.745, lon: 121.450 }, "玉里鎮": { lat: 23.336, lon: 121.310 }, "吉安鄉": { lat: 23.960, lon: 121.568 }, "新城鄉": { lat: 24.025, lon: 121.623 }, "壽豐鄉": { lat: 23.871, lon: 121.507 }, "光復鄉": { lat: 23.666, lon: 121.423 }, "瑞穗鄉": { lat: 23.498, lon: 121.378 } },
+            "台東縣": { "台東市": { lat: 22.756, lon: 121.144 }, "成功鎮": { lat: 23.100, lon: 121.378 }, "關山鎮": { lat: 23.048, lon: 121.163 }, "卑南鄉": { lat: 22.787, lon: 121.092 }, "鹿野鄉": { lat: 22.912, lon: 121.157 }, "池上鄉": { lat: 23.122, lon: 121.216 }, "東河鄉": { lat: 22.969, lon: 121.302 }, "太麻里": { lat: 22.615, lon: 121.006 } },
+            "澎湖縣": { "馬公市": { lat: 23.565, lon: 119.563 } },
+            "金門縣": { "金城鎮": { lat: 24.417, lon: 118.317 } },
         };
 
         const calculateDewPoint = (T, RH) => {
@@ -62,8 +47,7 @@
             const a = 17.27;
             const b = 237.7;
             const alpha = ((a * T) / (b + T)) + Math.log(RH / 100.0);
-            const dewPoint = (b * alpha) / (a - alpha);
-            return parseFloat(dewPoint.toFixed(1));
+            return parseFloat(((b * alpha) / (a - alpha)).toFixed(1));
         };
 
         function App() {
@@ -84,31 +68,20 @@
             useEffect(() => {
                 if (!isAutoOutdoor) return;
                 const fetchData = async () => {
-                setOutdoorData(prev => ({ ...prev, loading: true, error: null }));
-                const location = TAIWAN_LOCATIONS[selectedCity]?.[selectedDistrict];
-                if (!location || !location.lat || !location.lon) {
-                    setOutdoorData({ temp: null, humid: null, loading: false, error: "無此地點資料" });
-                    return;
-                }
-                try {
-                    const response = await fetch(
-                    `https://api.open-meteo.com/v1/forecast?latitude=${location.lat}&longitude=${location.lon}&current=temperature_2m,relative_humidity_2m&timezone=auto`
-                    );
-                    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-                    const data = await response.json();
-                    if (data.current) {
-                    setOutdoorData({
-                        temp: data.current.temperature_2m,
-                        humid: data.current.relative_humidity_2m,
-                        loading: false,
-                        error: null
-                    });
-                    } else {
-                    throw new Error("數據格式錯誤");
+                    setOutdoorData(prev => ({ ...prev, loading: true, error: null }));
+                    const location = TAIWAN_LOCATIONS[selectedCity]?.[selectedDistrict];
+                    if (!location) {
+                        setOutdoorData({ temp: null, humid: null, loading: false, error: "地點錯誤" });
+                        return;
                     }
-                } catch (err) {
-                    setOutdoorData(prev => ({ ...prev, loading: false, error: "無法連線" }));
-                }
+                    try {
+                        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${location.lat}&longitude=${location.lon}&current=temperature_2m,relative_humidity_2m&timezone=auto`);
+                        if (!res.ok) throw new Error("API連線失敗");
+                        const data = await res.json();
+                        setOutdoorData({ temp: data.current.temperature_2m, humid: data.current.relative_humidity_2m, loading: false, error: null });
+                    } catch (err) {
+                        setOutdoorData(prev => ({ ...prev, loading: false, error: "網路連線失敗" }));
+                    }
                 };
                 fetchData();
             }, [selectedCity, selectedDistrict, isAutoOutdoor, triggerFetch]);
@@ -117,226 +90,107 @@
                 const inT = parseFloat(indoorTemp);
                 const inH = parseFloat(indoorHumid);
                 const inDP = calculateDewPoint(inT, inH);
-                let outT, outH;
-                if (isAutoOutdoor) {
-                outT = outdoorData.temp;
-                outH = outdoorData.humid;
-                } else {
-                outT = parseFloat(manualOutTemp);
-                outH = parseFloat(manualOutHumid);
-                }
+                const outT = isAutoOutdoor ? outdoorData.temp : parseFloat(manualOutTemp);
+                const outH = isAutoOutdoor ? outdoorData.humid : parseFloat(manualOutHumid);
                 const outDP = calculateDewPoint(outT, outH);
 
-                let status = "loading";
-                let reason = "等待數據...";
-                let color = "bg-gray-400";
-                let icon = "loading";
-                let dpDiff = 0; 
-                let tDiff = 0;
-
-                if (isNaN(inT) || isNaN(inH) || isNaN(outT) || isNaN(outH) || outDP === null || inDP === null) {
-                    if (!isAutoOutdoor) return { status: "error", reason: "請輸入完整數值", color: "bg-slate-500" };
-                    if (outdoorData.loading) return { status: "loading", reason: "正在連線氣象衛星...", color: "bg-slate-400" };
-                    if (outdoorData.error) return { status: "error", reason: outdoorData.error, color: "bg-red-500" };
-                    return { status: "error", reason: "無數據", color: "bg-slate-500" };
+                if (inDP === null || outDP === null) {
+                    return { status: "loading", reason: outdoorData.loading ? "連線中..." : "請檢查數據內容", color: "bg-slate-400" };
                 }
 
-                dpDiff = parseFloat((inDP - outDP).toFixed(1));
-                tDiff = parseFloat((outT - inT).toFixed(1));
+                const dpDiff = (inDP - outDP).toFixed(1);
+                const tDiff = (outT - inT).toFixed(1);
+                let res = { inDP, outDP, outT, outH, dpDiff, tDiff };
 
                 if (algoMode === 'strict') {
-                const isDewGood = dpDiff >= 2.0; 
-                const isTempGood = tDiff <= 3.0;
-
-                if (isDewGood && isTempGood) {
-                    status = "open";
-                    reason = "【建議開窗】戶外乾燥且溫度適宜，符合強效除濕標準！";
-                    color = "bg-emerald-600";
-                    icon = "open";
+                    if (dpDiff >= 2.0 && tDiff <= 3.0) {
+                        return { ...res, status: "open", reason: "【建議開窗】戶外乾燥且溫度適宜，符合除濕標準！", color: "bg-emerald-600", icon: "open" };
+                    }
+                    return { ...res, status: "close", reason: "建議關窗 (未達嚴格除濕標準)。", color: "bg-slate-600", icon: "close" };
                 } else {
-                    status = "close";
-                    reason = "建議關窗 (未達嚴格除濕標準)。";
-                    color = "bg-slate-600";
-                    icon = "close";
+                    if (outDP >= inT) return { ...res, status: "close", reason: "⚠️ 反潮危險！戶外露點 > 室內氣溫，開窗會結露。", color: "bg-red-600", icon: "danger" };
+                    if (outDP < inDP) return { ...res, status: "open", reason: "戶外空氣較乾燥，適合一般通風。", color: "bg-blue-600", icon: "open" };
+                    return { ...res, status: "close", reason: "戶外濕氣較重，不建議開窗。", color: "bg-orange-500", icon: "close" };
                 }
-                } else {
-                if (outDP >= inT) {
-                    status = "close";
-                    reason = "⚠️ 反潮危險！戶外露點 > 室內氣溫，開窗會結露。";
-                    color = "bg-red-600";
-                    icon = "danger";
-                } else if (outDP < inDP) {
-                    status = "open";
-                    reason = "戶外空氣較乾燥，適合一般通風。";
-                    color = "bg-blue-600";
-                    icon = "open";
-                } else {
-                    status = "close";
-                    reason = "戶外濕氣較重，不建議開窗。";
-                    color = "bg-orange-500";
-                    icon = "close";
-                }
-                }
-
-                return { inDP, outDP, inT, inH, outT, outH, status, reason, color, icon, dpDiff, tDiff };
             }, [indoorTemp, indoorHumid, outdoorData, manualOutTemp, manualOutHumid, isAutoOutdoor, algoMode]);
 
-            const handleNum = (setter) => (e) => setter(e.target.value);
-
             return (
-                <div className="min-h-screen bg-slate-100 text-slate-800 font-sans pb-10 flex flex-col items-center">
-                    <div className="max-w-md w-full min-h-screen bg-white shadow-2xl overflow-hidden flex flex-col">
-                        <header className="bg-emerald-700 text-white p-4 shadow-lg sticky top-0 z-20 flex justify-between items-center">
-                            <div className="flex items-center gap-2">
-                                <Wind size={20} className="text-emerald-200" />
-                                <h1 className="text-lg font-bold">開窗判斷助手</h1>
-                            </div>
-                            <div className="text-[10px] bg-white/20 px-2 py-1 rounded">TW Weather</div>
+                <div className="min-h-screen bg-slate-100 p-4 flex flex-col items-center">
+                    <div className="max-w-md w-full bg-white shadow-xl rounded-3xl overflow-hidden border border-slate-200">
+                        <header className="bg-emerald-700 text-white p-4 flex justify-between items-center">
+                            <div className="flex items-center gap-2"><Wind size={20}/><h1 className="font-bold">開窗判斷助手</h1></div>
+                            <span className="text-[10px] bg-white/20 px-2 py-1 rounded">TW Weather</span>
                         </header>
 
-                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                            <section className="bg-white border-2 border-emerald-100 rounded-xl overflow-hidden shadow-sm">
-                                <div className="bg-emerald-50 p-2 border-b border-emerald-100 flex items-center gap-2 text-emerald-800">
-                                    <Settings size={14} />
-                                    <h2 className="font-bold text-xs">判斷邏輯</h2>
-                                </div>
-                                <div className="p-2 flex gap-2">
-                                <button onClick={() => setAlgoMode('strict')} className={`flex-1 p-3 rounded-lg text-left transition-all border ${algoMode === 'strict' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-1 ring-emerald-300' : 'bg-white text-slate-500 border-slate-200'}`}>
-                                    <div className="font-bold text-sm mb-1">嚴格強效除濕</div>
-                                    <div className="text-[10px] opacity-90">露點差 ≥ 2.0<br/>溫差 ≤ 3.0</div>
-                                </button>
-                                <button onClick={() => setAlgoMode('standard')} className={`flex-1 p-3 rounded-lg text-left transition-all border ${algoMode === 'standard' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-slate-500 border-slate-200'}`}>
-                                    <div className="font-bold text-sm mb-1">一般物理防潮</div>
-                                    <div className="text-[10px] opacity-90">防反潮為主<br/>(OutDP &lt; InDP)</div>
-                                </button>
-                                </div>
-                            </section>
+                        <div className="p-4 space-y-4">
+                            {/* 判斷邏輯切換 */}
+                            <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
+                                <button onClick={()=>setAlgoMode('strict')} className={`flex-1 p-2 rounded-lg text-xs font-bold transition-all ${algoMode==='strict'?'bg-white shadow text-emerald-700':'text-slate-500'}`}>嚴格強效除濕</button>
+                                <button onClick={()=>setAlgoMode('standard')} className={`flex-1 p-2 rounded-lg text-xs font-bold transition-all ${algoMode==='standard'?'bg-white shadow text-blue-700':'text-slate-500'}`}>一般物理防潮</button>
+                            </div>
 
-                            <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
-                                <div className="flex justify-between items-center mb-2">
-                                    <div className="flex items-center gap-2 text-slate-700 font-bold text-sm">
-                                    <Globe size={16} /> 戶外環境 (Outdoor)
-                                    </div>
-                                    <div className="bg-slate-100 p-0.5 rounded-lg flex">
-                                    <button onClick={() => setIsAutoOutdoor(true)} className={`px-2 py-1 text-[10px] rounded-md font-bold transition-all ${isAutoOutdoor ? 'bg-white shadow text-slate-800' : 'text-slate-400'}`}>自動</button>
-                                    <button onClick={() => setIsAutoOutdoor(false)} className={`px-2 py-1 text-[10px] rounded-md font-bold transition-all ${!isAutoOutdoor ? 'bg-white shadow text-slate-800' : 'text-slate-400'}`}>手動</button>
+                            {/* 戶外數據 */}
+                            <section className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                                <div className="flex justify-between items-center mb-3">
+                                    <div className="flex items-center gap-2 text-sm font-bold text-slate-600"><Globe size={16}/> 戶外環境</div>
+                                    <div className="flex bg-white rounded-lg p-0.5 shadow-sm border">
+                                        <button onClick={()=>setIsAutoOutdoor(true)} className={`px-3 py-1 text-[10px] rounded-md ${isAutoOutdoor?'bg-emerald-100 text-emerald-700 font-bold':'text-slate-400'}`}>自動</button>
+                                        <button onClick={()=>setIsAutoOutdoor(false)} className={`px-3 py-1 text-[10px] rounded-md ${!isAutoOutdoor?'bg-emerald-100 text-emerald-700 font-bold':'text-slate-400'}`}>手動</button>
                                     </div>
                                 </div>
 
                                 {isAutoOutdoor ? (
-                                <div className="space-y-3 animate-in fade-in">
-                                    <div className="flex gap-2">
-                                        <select className="flex-1 bg-slate-50 border border-slate-300 rounded-md text-sm p-2 outline-none" value={selectedCity} onChange={e => {setSelectedCity(e.target.value); setSelectedDistrict(Object.keys(TAIWAN_LOCATIONS[e.target.value])[0])}}>
-                                        {Object.keys(TAIWAN_LOCATIONS).map(c => <option key={c} value={c}>{c}</option>)}
+                                    <div className="grid grid-cols-2 gap-2 mb-3">
+                                        <select value={selectedCity} onChange={e=>{setSelectedCity(e.target.value); setSelectedDistrict(Object.keys(TAIWAN_LOCATIONS[e.target.value])[0])}} className="text-xs p-2 border rounded-lg outline-none">
+                                            {Object.keys(TAIWAN_LOCATIONS).map(c=><option key={c} value={c}>{c}</option>)}
                                         </select>
-                                        <select className="flex-1 bg-slate-50 border border-slate-300 rounded-md text-sm p-2 outline-none" value={selectedDistrict} onChange={e => setSelectedDistrict(e.target.value)}>
-                                        {TAIWAN_LOCATIONS[selectedCity] && Object.keys(TAIWAN_LOCATIONS[selectedCity]).map(d => <option key={d} value={d}>{d}</option>)}
+                                        <select value={selectedDistrict} onChange={e=>setSelectedDistrict(e.target.value)} className="text-xs p-2 border rounded-lg outline-none">
+                                            {Object.keys(TAIWAN_LOCATIONS[selectedCity]).map(d=><option key={d} value={d}>{d}</option>)}
                                         </select>
                                     </div>
-                                    
-                                    <div className="flex justify-between items-center bg-slate-50 p-2 rounded text-xs">
-                                        {outdoorData.loading ? (
-                                            <span className="text-emerald-500 flex items-center gap-1"><RefreshCw size={10} className="animate-spin"/> 讀取中...</span>
-                                        ) : outdoorData.error ? (
-                                            <span className="text-red-500 flex items-center gap-1"><AlertTriangle size={10}/> {outdoorData.error}</span>
-                                        ) : (
-                                            <span className="text-green-600 flex items-center gap-1"><CheckCircle size={10}/> 數據已更新</span>
-                                        )}
-                                        
-                                        <button onClick={() => setTriggerFetch(n => n + 1)} className="bg-white border border-slate-200 px-2 py-1 rounded shadow-sm hover:bg-slate-50 flex items-center gap-1">
-                                            <RefreshCw size={10}/> 重試
-                                        </button>
-                                    </div>
-                                </div>
                                 ) : (
-                                <div className="grid grid-cols-2 gap-3 animate-in fade-in">
-                                    <div className="relative">
-                                        <label className="text-[10px] font-bold text-slate-400">溫度 °C</label>
-                                        <input type="number" step="0.1" value={manualOutTemp} onChange={handleNum(setManualOutTemp)} className="w-full bg-slate-50 border border-slate-300 rounded p-1.5 font-bold text-slate-700 outline-none focus:border-emerald-500" />
+                                    <div className="grid grid-cols-2 gap-2 mb-3">
+                                        <input type="number" value={manualOutTemp} onChange={e=>setManualOutTemp(e.target.value)} className="text-xs p-2 border rounded-lg" placeholder="溫°C"/>
+                                        <input type="number" value={manualOutHumid} onChange={e=>setManualOutHumid(e.target.value)} className="text-xs p-2 border rounded-lg" placeholder="濕%"/>
                                     </div>
-                                    <div className="relative">
-                                        <label className="text-[10px] font-bold text-slate-400">濕度 %</label>
-                                        <input type="number" step="1" value={manualOutHumid} onChange={handleNum(setManualOutHumid)} className="w-full bg-slate-50 border border-slate-300 rounded p-1.5 font-bold text-slate-700 outline-none focus:border-emerald-500" />
-                                    </div>
-                                </div>
                                 )}
+
+                                <div className="grid grid-cols-3 gap-2 text-center">
+                                    <div className="bg-white p-2 rounded-xl shadow-sm"><div className="text-[10px] text-slate-400">溫度</div><div className="font-bold text-slate-700">{calculation.outT ?? '--'}°</div></div>
+                                    <div className="bg-white p-2 rounded-xl shadow-sm"><div className="text-[10px] text-slate-400">濕度</div><div className="font-bold text-slate-700">{calculation.outH ?? '--'}%</div></div>
+                                    <div className="bg-emerald-50 p-2 rounded-xl shadow-sm border border-emerald-100"><div className="text-[10px] text-emerald-600 font-bold">露點</div><div className="font-bold text-emerald-600">{calculation.outDP ?? '--'}°</div></div>
+                                </div>
+                            </section>
+
+                            {/* 室內數據 */}
+                            <section className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                                <div className="flex items-center gap-2 text-sm font-bold text-slate-600 mb-3"><Thermometer size={16}/> 室內環境</div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div><label className="text-[10px] text-slate-400 font-bold ml-1">溫度 °C</label><input type="number" value={indoorTemp} onChange={e=>setIndoorTemp(e.target.value)} className="w-full text-sm p-2 border rounded-lg font-bold text-slate-700"/></div>
+                                    <div><label className="text-[10px] text-slate-400 font-bold ml-1">濕度 %</label><input type="number" value={indoorHumid} onChange={e=>setIndoorHumid(e.target.value)} className="w-full text-sm p-2 border rounded-lg font-bold text-slate-700"/></div>
+                                </div>
+                            </section>
+
+                            {/* 判斷結果 */}
+                            <section className={`rounded-2xl p-6 text-white transition-all shadow-lg ${calculation.color}`}>
+                                <div className="flex items-center gap-3 mb-2">
+                                    {calculation.icon === 'open' ? <CheckCircle size={28}/> : (calculation.icon === 'danger' ? <AlertTriangle size={28}/> : <XCircle size={28}/>)}
+                                    <h2 className="text-2xl font-bold">{calculation.status === "open" ? "建議開窗" : (calculation.status === "loading" ? "請稍候" : "建議關窗")}</h2>
+                                </div>
+                                <p className="text-sm opacity-90 font-medium mb-4">{calculation.reason}</p>
                                 
-                                <div className="bg-slate-50 rounded-lg p-2 flex justify-between items-center text-center divide-x divide-slate-200 mt-2">
-                                    <div className="flex-1">
-                                    <div className="text-[10px] text-slate-400">Temp</div>
-                                    <div className="font-bold text-lg">{calculation.outT !== null ? `${calculation.outT}°` : '--'}</div>
-                                    </div>
-                                    <div className="flex-1">
-                                    <div className="text-[10px] text-slate-400">RH</div>
-                                    <div className="font-bold text-lg">{calculation.outH !== null ? `${calculation.outH}%` : '--'}</div>
-                                    </div>
-                                    <div className="flex-1">
-                                    <div className="text-[10px] text-emerald-600 font-bold">露點</div>
-                                    <div className="font-bold text-lg text-emerald-600">{calculation.outDP !== null ? `${calculation.outDP}°` : '--'}</div>
-                                    </div>
-                                </div>
-                            </section>
-
-                            <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
-                                <div className="flex items-center gap-2 text-slate-700 font-bold text-sm mb-2">
-                                    <Thermometer size={16} /> 室內環境 (Indoor)
-                                </div>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="relative">
-                                    <label className="text-[10px] font-bold text-slate-400">溫度 °C</label>
-                                    <input type="number" step="0.1" value={indoorTemp} onChange={handleNum(setIndoorTemp)} className="w-full bg-slate-50 border border-slate-300 rounded p-1.5 font-bold text-slate-700 outline-none focus:border-emerald-500" />
-                                    </div>
-                                    <div className="relative">
-                                    <label className="text-[10px] font-bold text-slate-400">濕度 %</label>
-                                    <input type="number" step="1" value={indoorHumid} onChange={handleNum(setIndoorHumid)} className="w-full bg-slate-50 border border-slate-300 rounded p-1.5 font-bold text-slate-700 outline-none focus:border-emerald-500" />
-                                    </div>
-                                </div>
-                                <div className="flex justify-end gap-2 text-sm pt-2 border-t border-slate-100">
-                                    <span className="text-slate-400 text-xs mt-1">室內露點:</span>
-                                    <span className="font-bold text-emerald-600">{calculation.inDP ?? '--'}°C</span>
-                                </div>
-                            </section>
-
-                            <section className={`rounded-2xl shadow-md p-5 text-white transition-all duration-300 ${calculation.color} relative overflow-hidden`}>
-                                <div className="relative z-10">
-                                    <div className="flex items-center gap-3 mb-2">
-                                    {calculation.icon === 'loading' ? <RefreshCw className="animate-spin" size={24}/> : 
-                                    (calculation.icon === 'open' ? <CheckCircle size={28}/> : 
-                                    (calculation.icon === 'danger' ? <AlertTriangle size={28}/> : <XCircle size={28}/>))}
-                                    
-                                    <h2 className="text-2xl font-bold">
-                                        {calculation.status === "loading" ? "資料讀取中..." :
-                                        (calculation.status === "open" ? "建議開窗" : 
-                                        (calculation.status === "error" ? "數據錯誤" : "建議關窗"))}
-                                    </h2>
-                                    </div>
-                                    <p className="text-sm opacity-90 font-medium mb-4 pl-1 min-h-[40px]">{calculation.reason}</p>
-
-                                    {calculation.status !== 'loading' && calculation.status !== 'error' && algoMode === 'strict' && (
-                                    <div className="grid grid-cols-2 gap-2 mt-2">
-                                        <div className={`p-2 rounded bg-black/20 backdrop-blur border ${calculation.dpDiff >= 2 ? 'border-white/40' : 'border-red-400/50'}`}>
-                                            <div className="flex justify-between text-[10px] opacity-80 mb-1">
-                                            <span>露點差 (內-外)</span>
-                                            <span className="opacity-60">目標 ≥ 2.0</span>
-                                            </div>
-                                            <div className="flex items-center justify-between">
-                                            <span className="text-xl font-mono font-bold">{calculation.dpDiff}</span>
-                                            {calculation.dpDiff >= 2 ? <CheckCircle size={14} className="text-emerald-300"/> : <XCircle size={14} className="text-red-300"/>}
-                                            </div>
+                                {calculation.status !== 'loading' && algoMode === 'strict' && (
+                                    <div className="grid grid-cols-2 gap-2 border-t border-white/20 pt-4">
+                                        <div className="bg-white/10 p-2 rounded-lg text-center">
+                                            <div className="text-[10px] opacity-70">露點差 (目標≥2)</div>
+                                            <div className="text-xl font-mono font-bold">{calculation.dpDiff}</div>
                                         </div>
-                                        <div className={`p-2 rounded bg-black/20 backdrop-blur border ${calculation.tDiff <= 3 ? 'border-white/40' : 'border-red-400/50'}`}>
-                                            <div className="flex justify-between text-[10px] opacity-80 mb-1">
-                                            <span>溫差 (外-內)</span>
-                                            <span className="opacity-60">目標 ≤ 3.0</span>
-                                            </div>
-                                            <div className="flex items-center justify-between">
-                                            <span className="text-xl font-mono font-bold">{calculation.tDiff}</span>
-                                            {calculation.tDiff <= 3 ? <CheckCircle size={14} className="text-emerald-300"/> : <XCircle size={14} className="text-red-300"/>}
-                                            </div>
+                                        <div className="bg-white/10 p-2 rounded-lg text-center">
+                                            <div className="text-[10px] opacity-70">溫差 (目標≤3)</div>
+                                            <div className="text-xl font-mono font-bold">{calculation.tDiff}</div>
                                         </div>
                                     </div>
-                                    )}
-                                </div>
+                                )}
                             </section>
                         </div>
                     </div>
@@ -344,7 +198,8 @@
             );
         }
 
-        const root = createRoot(document.getElementById('root'));
+        const container = document.getElementById('root');
+        const root = createRoot(container);
         root.render(<App />);
     </script>
 </body>
