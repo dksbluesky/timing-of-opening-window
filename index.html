@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>開窗助手 Pro - 全台通用版</title>
+    <title>開窗助手 Pro</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -15,18 +15,19 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
-        const Icon = ({ name, className = "" }) => {
-            const icons = {
+        // --- 內嵌 SVG 圖標：徹底解決 Error #130 ---
+        const Icon = ({ name, className = "w-6 h-6" }) => {
+            const paths = {
                 Wind: <path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2m-6.8 6a2 2 0 1 1-1.4 3.4H2m16.7-16.8a3.5 3.5 0 1 1 3.1 6H2" />,
+                Rain: <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M16 14v6m-4-2v6m-4-4v6" />,
+                Home: <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22" />,
                 Refresh: <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8m0 0V3m0 5h5m-1 4a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16m0 0v5m0-5h-5" />,
-                Thermometer: <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" />,
-                CloudRain: <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M16 14v6m-4-2v6m-4-4v6" />,
-                Check: <path d="M20 6 9 17l-5-5" />,
-                X: <path d="M18 6 6 18M6 6l12 12" />
+                Check: <polyline points="20 6 9 17 4 12" />,
+                X: <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             };
             return (
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-                    {icons[name] || <circle cx="12" cy="12" r="10" />}
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                    {paths[name]}
                 </svg>
             );
         };
@@ -35,8 +36,8 @@
         const OBS_URL = "https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0003-001?format=JSON";
         const FC_URL = "https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-091?format=JSON";
 
-        // 全台 22 縣市完整行政區
-        const ALL_AREAS = {
+        // 全台 368 鄉鎮區資料庫
+        const TAIWAN_DATA = {
             "台南市": ["中西區", "安平區", "東區", "南區", "北區", "安南區", "永康區", "歸仁區", "新化區", "左鎮區", "玉井區", "楠西區", "南化區", "仁德區", "關廟區", "龍崎區", "官田區", "麻豆區", "佳里區", "西港區", "七股區", "將軍區", "學甲區", "北門區", "新營區", "後壁區", "白河區", "東山區", "六甲區", "下營區", "柳營區", "鹽水區", "善化區", "大內區", "山上區", "新市區", "安定區"],
             "台北市": ["中正區", "大同區", "中山區", "松山區", "大安區", "萬華區", "信義區", "士林區", "北投區", "內湖區", "南港區", "文山區"],
             "新北市": ["板橋區", "三重區", "中和區", "永和區", "新莊區", "新店區", "樹林區", "鶯歌區", "三峽區", "淡水區", "汐止區", "瑞芳區", "土城區", "蘆洲區", "五股區", "泰山區", "林口區", "深坑區", "石碇區", "坪林區", "三芝區", "石門區", "八里區", "平溪區", "雙溪區", "貢寮區", "金山區", "萬里區", "烏來區"],
@@ -61,7 +62,7 @@
             "連江縣": ["南竿鄉", "北竿鄉", "莒光鄉", "東引鄉"]
         };
 
-        const calcDP = (T, RH) => {
+        const calculateDP = (T, RH) => {
             const t = parseFloat(T), h = parseFloat(RH);
             if (isNaN(t) || isNaN(h)) return null;
             const a = 17.27, b = 237.7;
@@ -81,16 +82,23 @@
                 setObs(p => ({ ...p, loading: true }));
                 setFc(p => ({ ...p, loading: true }));
                 try {
+                    // 1. 現況觀測
                     const resObs = await fetch(`${OBS_URL}&Authorization=${CWA_KEY}&locationName=${encodeURIComponent(city)}`);
                     const dObs = await resObs.json();
                     const s = dObs.records.Station.find(x => x.GeoInfo.TownName === dist) || dObs.records.Station[0];
                     setObs({ t: s.WeatherElement.AirTemperature, h: s.WeatherElement.RelativeHumidity, station: s.StationName, loading: false });
 
+                    // 2. 降雨預報
                     const resFc = await fetch(`${FC_URL}&Authorization=${CWA_KEY}&locationName=${encodeURIComponent(city)}`);
                     const dFc = await resFc.json();
                     const loc = dFc.records.locations[0].location.find(l => l.locationName === dist) || dFc.records.locations[0].location[0];
                     const pop = loc.weatherElement.find(e => e.elementName === "PoP12h");
-                    if (pop) setFc({ data: pop.time.slice(0, 8).map(t => ({ time: t.startTime.substring(5, 13).replace(' ', '\n'), val: parseInt(t.elementValue[0].value) || 0 })), loading: false });
+                    if (pop) {
+                        setFc({ data: pop.time.slice(0, 8).map(t => ({ 
+                            time: t.startTime.substring(5, 13).replace(' ', '\n'), 
+                            val: parseInt(t.elementValue[0].value) || 0 
+                        })), loading: false });
+                    }
                 } catch (e) {
                     setObs(p => ({ ...p, loading: false }));
                     setFc(p => ({ ...p, loading: false }));
@@ -100,7 +108,7 @@
             useEffect(() => { fetchData(); }, [city, dist]);
 
             const analysis = useMemo(() => {
-                const inDP = calcDP(indoor.t, indoor.h), outDP = calcDP(obs.t, obs.h);
+                const inDP = calculateDP(indoor.t, indoor.h), outDP = calculateDP(obs.t, obs.h);
                 if (inDP === null || outDP === null) return null;
                 const dDiff = (inDP - outDP).toFixed(1), tDiff = (obs.t - indoor.t).toFixed(1);
                 const pass = dDiff >= 2.0 && tDiff <= 3.0;
@@ -115,16 +123,16 @@
                                 <Icon name="Wind" className="text-emerald-400" />
                                 <h1 className="text-xl font-black tracking-tighter uppercase">CWA PRO 助手</h1>
                             </div>
-                            <button onClick={fetchData} className="p-2 bg-white/10 rounded-full">
+                            <button onClick={fetchData} className="p-2 bg-white/10 rounded-full active:scale-95 transition-all">
                                 <Icon name="Refresh" className={obs.loading ? "animate-spin" : ""} />
                             </button>
                         </div>
                         <div className="grid grid-cols-2 gap-2 mb-4">
-                            <select value={city} onChange={e=>{setCity(e.target.value); setDist(ALL_AREAS[e.target.value][0])}} className="bg-white/10 border border-white/20 p-2 rounded-xl text-xs font-bold text-white outline-none">
-                                {Object.keys(ALL_AREAS).map(c=><option key={c} value={c} className="text-slate-800">{c}</option>)}
+                            <select value={city} onChange={e=>{setCity(e.target.value); setDist(TAIWAN_DATA[e.target.value][0])}} className="bg-white/10 border border-white/20 p-2 rounded-xl text-xs font-bold text-white outline-none">
+                                {Object.keys(TAIWAN_DATA).map(c=><option key={c} value={c} className="text-slate-800">{c}</option>)}
                             </select>
                             <select value={dist} onChange={e=>setDist(e.target.value)} className="bg-white/10 border border-white/20 p-2 rounded-xl text-xs font-bold text-white outline-none">
-                                {ALL_AREAS[city].map(d=><option key={d} value={d} className="text-slate-800">{d}</option>)}
+                                {TAIWAN_DATA[city].map(d=><option key={d} value={d} className="text-slate-800">{d}</option>)}
                             </select>
                         </div>
                         <nav className="flex gap-6 mt-2 border-b border-white/10">
@@ -144,12 +152,12 @@
                                     <div className="grid grid-cols-3 gap-2 text-center">
                                         <div className="bg-white p-2 rounded-xl border shadow-sm"><div className="text-[9px] text-slate-400">溫度</div><div className="font-black">{obs.t??'--'}°</div></div>
                                         <div className="bg-white p-2 rounded-xl border shadow-sm"><div className="text-[9px] text-slate-400">濕度</div><div className="font-black">{obs.h??'--'}%</div></div>
-                                        <div className="bg-emerald-50 p-2 rounded-xl border border-emerald-100"><div className="text-[9px] text-emerald-600 font-bold">露點</div><div className="font-black text-emerald-600">{calcDP(obs.t, obs.h)??'--'}°</div></div>
+                                        <div className="bg-emerald-50 p-2 rounded-xl border border-emerald-100"><div className="text-[9px] text-emerald-600 font-bold">露點</div><div className="font-black text-emerald-600">{calculateDP(obs.t, obs.h)??'--'}°</div></div>
                                     </div>
                                 </section>
 
                                 <section className="bg-slate-50 p-4 rounded-2xl border space-y-3">
-                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1"><Icon name="Thermometer" className="w-3 h-3"/> 室內環境</div>
+                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1"><Icon name="Home" className="w-3 h-3"/> 室內環境</div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <input type="number" step="0.1" value={indoor.t} onChange={e=>setIndoor({...indoor, t: e.target.value})} className="w-full p-2 border rounded-xl font-bold bg-white" />
                                         <input type="number" step="1" value={indoor.h} onChange={e=>setIndoor({...indoor, h: e.target.value})} className="w-full p-2 border rounded-xl font-bold bg-white" />
@@ -159,7 +167,7 @@
                                 {analysis && (
                                     <div className={`${analysis.pass?'bg-emerald-600':'bg-slate-700'} p-6 rounded-[2rem] text-white shadow-xl transition-all`}>
                                         <div className="flex items-center gap-3 mb-4">
-                                            <Icon name={analysis.pass?"Check":"X"} />
+                                            {analysis.pass ? <Icon name="Check" /> : <Icon name="X" />}
                                             <h2 className="text-2xl font-black">{analysis.pass?'建議開窗':'建議關窗'}</h2>
                                         </div>
                                         <div className="grid grid-cols-2 gap-2 text-center">
@@ -172,9 +180,9 @@
                         ) : (
                             <section className="space-y-4">
                                 <div className="bg-slate-900 p-6 rounded-[2rem] text-white min-h-[250px] flex flex-col">
-                                    <h3 className="text-sm font-bold mb-6 flex items-center gap-2 text-blue-400"><Icon name="CloudRain" /> 72 小時降雨機率</h3>
+                                    <h3 className="text-sm font-bold mb-6 flex items-center gap-2 text-blue-400"><Icon name="Rain" /> 72 小時降雨機率</h3>
                                     {fc.loading ? (
-                                        <div className="flex-1 flex items-center justify-center text-xs opacity-50 font-black">數據載入中...</div>
+                                        <div className="flex-1 flex items-center justify-center text-xs opacity-50 font-black tracking-widest">數據載入中...</div>
                                     ) : (
                                         <div className="flex items-end justify-between h-32 gap-1 mb-4">
                                             {fc.data.map((d, i) => (
