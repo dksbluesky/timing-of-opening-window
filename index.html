@@ -3,43 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>開窗助手 Pro - 雙功能穩定版</title>
+    <title>開窗助手 Pro - 全台通用版</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body class="bg-slate-100 min-h-screen flex items-center justify-center p-0 md:p-6">
     <div id="root" class="w-full max-w-lg"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useMemo, useRef } = React;
+        const { useState, useEffect, useMemo } = React;
 
-        // 圖標渲染組件：使用 lucide 核心庫進行渲染，避免 React 衝突
-        const StaticIcon = ({ name, size = 20, className = "" }) => {
-            const iconRef = useRef(null);
-            useEffect(() => {
-                if (iconRef.current) {
-                    iconRef.current.innerHTML = lucide.createIcons({
-                        icons: { [name]: lucide[name] },
-                        attrs: { width: size, height: size, class: className }
-                    });
-                }
-            }, [name, size, className]);
-            return <span ref={iconRef} className="inline-block"></span>;
+        const Icon = ({ name, className = "" }) => {
+            const icons = {
+                Wind: <path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2m-6.8 6a2 2 0 1 1-1.4 3.4H2m16.7-16.8a3.5 3.5 0 1 1 3.1 6H2" />,
+                Refresh: <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8m0 0V3m0 5h5m-1 4a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16m0 0v5m0-5h-5" />,
+                Thermometer: <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" />,
+                CloudRain: <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M16 14v6m-4-2v6m-4-4v6" />,
+                Check: <path d="M20 6 9 17l-5-5" />,
+                X: <path d="M18 6 6 18M6 6l12 12" />
+            };
+            return (
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                    {icons[name] || <circle cx="12" cy="12" r="10" />}
+                </svg>
+            );
         };
 
         const CWA_KEY = "CWA-BDD150F7-F455-44CA-8E6B-F548BBB011CB";
         const OBS_URL = "https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0003-001?format=JSON";
         const FC_URL = "https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-091?format=JSON";
 
-        const TAIWAN_DATA = {
-            "台南市": ["中西區", "安平區", "東區", "南區", "北區", "安南區", "永康區", "善化區", "新市區", "仁德區", "歸仁區"],
-            "台北市": ["中正區", "大安區", "信義區", "士林區", "內湖區", "北投區", "松山區"],
-            "新北市": ["板橋區", "新莊區", "中和區", "永和區", "淡水區", "三重區", "林口區"],
-            "台中市": ["西屯區", "北屯區", "南屯區", "太平區", "大里區", "豐原區"],
-            "高雄市": ["左營區", "前鎮區", "苓雅區", "三民區", "鳳山區", "鼓山區"]
+        // 全台 22 縣市完整行政區
+        const ALL_AREAS = {
+            "台南市": ["中西區", "安平區", "東區", "南區", "北區", "安南區", "永康區", "歸仁區", "新化區", "左鎮區", "玉井區", "楠西區", "南化區", "仁德區", "關廟區", "龍崎區", "官田區", "麻豆區", "佳里區", "西港區", "七股區", "將軍區", "學甲區", "北門區", "新營區", "後壁區", "白河區", "東山區", "六甲區", "下營區", "柳營區", "鹽水區", "善化區", "大內區", "山上區", "新市區", "安定區"],
+            "台北市": ["中正區", "大同區", "中山區", "松山區", "大安區", "萬華區", "信義區", "士林區", "北投區", "內湖區", "南港區", "文山區"],
+            "新北市": ["板橋區", "三重區", "中和區", "永和區", "新莊區", "新店區", "樹林區", "鶯歌區", "三峽區", "淡水區", "汐止區", "瑞芳區", "土城區", "蘆洲區", "五股區", "泰山區", "林口區", "深坑區", "石碇區", "坪林區", "三芝區", "石門區", "八里區", "平溪區", "雙溪區", "貢寮區", "金山區", "萬里區", "烏來區"],
+            "台中市": ["中區", "東區", "南區", "西區", "北區", "北屯區", "西屯區", "南屯區", "太平區", "大里區", "霧峰區", "烏日區", "豐原區", "後里區", "石岡區", "東勢區", "和平區", "新社區", "潭子區", "大雅區", "神岡區", "大肚區", "沙鹿區", "龍井區", "梧棲區", "清水區", "大甲區", "外埔區", "大安區"],
+            "高雄市": ["新興區", "前金區", "苓雅區", "鹽埕區", "鼓山區", "旗津區", "前鎮區", "三民區", "楠梓區", "小港區", "左營區", "仁武區", "大社區", "岡山區", "路竹區", "阿蓮區", "田寮區", "燕巢區", "橋頭區", "梓官區", "彌陀區", "永安區", "湖內區", "鳳山區", "大寮區", "林園區", "鳥松區", "大樹區", "旗山區", "美濃區", "六龜區", "內門區", "杉林區", "甲仙區", "桃源區", "那瑪夏區", "茂林區", "茄萣區"],
+            "基隆市": ["仁愛區", "信義區", "中正區", "中山區", "安樂區", "暖暖區", "七堵區"],
+            "桃園市": ["桃園區", "中壢區", "大溪區", "楊梅區", "蘆竹區", "大園區", "龜山區", "八德區", "龍潭區", "平鎮區", "新屋區", "觀音區", "復興區"],
+            "新竹市": ["東區", "北區", "香山區"],
+            "新竹縣": ["竹北市", "竹東鎮", "新埔鎮", "關西鎮", "湖口鄉", "新豐鄉", "芎林鄉", "橫山鄉", "北埔鄉", "寶山鄉", "峨眉鄉", "尖石鄉", "五峰鄉"],
+            "苗栗縣": ["苗栗市", "頭份區", "竹南鎮", "後龍鎮", "通霄鎮", "苑裡鎮", "卓蘭鎮", "造橋鄉", "西湖鄉", "頭屋鄉", "公館鄉", "銅鑼鄉", "三義鄉", "大湖鄉", "獅潭鄉", "三灣鄉", "南庄鄉", "泰安鄉"],
+            "彰化縣": ["彰化市", "鹿港鎮", "和美鎮", "線西鄉", "伸港鄉", "福興鄉", "秀水鄉", "花壇鄉", "芬園鄉", "員林市", "溪湖鎮", "田中鎮", "大村鄉", "埔鹽鄉", "埔心鄉", "永靖鄉", "社頭鄉", "二水鄉", "北斗鎮", "二林鎮", "埤頭鄉", "芳苑鄉", "大城鄉", "竹塘鄉", "溪州鄉", "田尾鄉"],
+            "南投縣": ["南投市", "埔里鎮", "草屯鎮", "竹山鎮", "集集鎮", "名間鄉", "鹿谷鄉", "中寮鄉", "魚池鄉", "國姓鄉", "水里鄉", "信義鄉", "仁愛鄉"],
+            "雲林縣": ["斗六市", "斗南鎮", "虎尾鎮", "西螺鎮", "土庫鎮", "北港鎮", "古坑鄉", "大埤鄉", "莿桐鄉", "林內鄉", "二崙鄉", "崙背鄉", "麥寮鄉", "東勢鄉", "褒忠鄉", "台西鄉", "元長鄉", "四湖鄉", "口湖鄉", "水林鄉"],
+            "嘉義市": ["東區", "西區"],
+            "嘉義縣": ["太保市", "朴子市", "布袋鎮", "大林鎮", "民雄鄉", "溪口鄉", "新港鄉", "六腳鄉", "東石鄉", "義竹鄉", "鹿草鄉", "水上鄉", "中埔鄉", "竹崎鄉", "梅山鄉", "番路鄉", "大埔鄉", "阿里山"],
+            "屏東縣": ["屏東市", "三地門", "霧台鄉", "瑪家鄉", "九如鄉", "里港鄉", "高樹鄉", "鹽埔鄉", "長治鄉", "麟洛鄉", "竹田鄉", "內埔鄉", "萬丹鄉", "潮州鎮", "泰武鄉", "來義鄉", "萬巒鄉", "嵌頂鄉", "新埤鄉", "南州鄉", "林邊鄉", "東港鎮", "琉球鄉", "佳冬鄉", "新園鄉", "枋寮鄉", "枋山鄉", "春日鄉", "獅子鄉", "車城鄉", "牡丹鄉", "恆春鎮", "滿州鄉"],
+            "宜蘭縣": ["宜蘭市", "羅東鎮", "蘇澳鎮", "頭城鎮", "礁溪鄉", "壯圍鄉", "員山鄉", "冬山鄉", "五結鄉", "三星鄉", "大同鄉", "南澳鄉"],
+            "花蓮縣": ["花蓮市", "鳳林鎮", "玉里鎮", "新城鄉", "吉安鄉", "壽豐鄉", "光復鄉", "豐濱鄉", "瑞穗鄉", "富里鄉", "秀林鄉", "萬榮鄉", "卓溪鄉"],
+            "台東縣": ["台東市", "成功鎮", "關山鎮", "卑南鄉", "鹿野鄉", "池上鄉", "東河鄉", "長濱鄉", "太麻里", "大武鄉", "綠島鄉", "海端鄉", "延平鄉", "金峰鄉", "達仁鄉", "蘭嶼鄉"],
+            "澎湖縣": ["馬公市", "湖西鄉", "白沙鄉", "西嶼鄉", "望安鄉", "七美鄉"],
+            "金門縣": ["金城鎮", "金湖鎮", "金沙鎮", "金寧鄉", "烈嶼鄉", "烏坵鄉"],
+            "連江縣": ["南竿鄉", "北竿鄉", "莒光鄉", "東引鄉"]
         };
 
         const calcDP = (T, RH) => {
@@ -52,37 +71,29 @@
 
         function App() {
             const [tab, setTab] = useState('judge');
-            const [city, setCity] = useState("台南市"); // 預設
+            const [city, setCity] = useState("台南市");
             const [dist, setDist] = useState("中西區");
             const [indoor, setIndoor] = useState({ t: 24.0, h: 60 });
             const [obs, setObs] = useState({ t: null, h: null, station: "", loading: false });
-            const [fc, setFc] = useState({ data: [], loading: false, error: null });
+            const [fc, setFc] = useState({ data: [], loading: false });
 
             const fetchData = async () => {
                 setObs(p => ({ ...p, loading: true }));
-                setFc(p => ({ ...p, loading: true, error: null }));
+                setFc(p => ({ ...p, loading: true }));
                 try {
-                    // 1. 現況觀測
                     const resObs = await fetch(`${OBS_URL}&Authorization=${CWA_KEY}&locationName=${encodeURIComponent(city)}`);
                     const dObs = await resObs.json();
                     const s = dObs.records.Station.find(x => x.GeoInfo.TownName === dist) || dObs.records.Station[0];
                     setObs({ t: s.WeatherElement.AirTemperature, h: s.WeatherElement.RelativeHumidity, station: s.StationName, loading: false });
 
-                    // 2. 一週預報 (解析 PoP12h)
                     const resFc = await fetch(`${FC_URL}&Authorization=${CWA_KEY}&locationName=${encodeURIComponent(city)}`);
                     const dFc = await resFc.json();
-                    const loc = dFc.records.Locations[0].Location.find(l => l.LocationName === dist) || dFc.records.Locations[0].Location[0];
-                    const pop = loc.WeatherElement.find(e => e.ElementName === "PoP12h");
-                    
-                    if (pop && pop.Time) {
-                        const chartData = pop.Time.slice(0, 8).map(t => ({
-                            time: t.StartTime.substring(5, 13).replace(' ', '\n'),
-                            val: parseInt(t.ElementValue[0].Value) || 0
-                        }));
-                        setFc({ data: chartData, loading: false, error: null });
-                    }
+                    const loc = dFc.records.locations[0].location.find(l => l.locationName === dist) || dFc.records.locations[0].location[0];
+                    const pop = loc.weatherElement.find(e => e.elementName === "PoP12h");
+                    if (pop) setFc({ data: pop.time.slice(0, 8).map(t => ({ time: t.startTime.substring(5, 13).replace(' ', '\n'), val: parseInt(t.elementValue[0].value) || 0 })), loading: false });
                 } catch (e) {
-                    setFc(p => ({ ...p, loading: false, error: "無法解析氣象數據" }));
+                    setObs(p => ({ ...p, loading: false }));
+                    setFc(p => ({ ...p, loading: false }));
                 }
             };
 
@@ -101,19 +112,19 @@
                     <header className="bg-slate-900 text-white p-6 pb-2">
                         <div className="flex justify-between items-center mb-4">
                             <div className="flex items-center gap-2">
-                                <StaticIcon name="Wind" className="text-emerald-400" />
+                                <Icon name="Wind" className="text-emerald-400" />
                                 <h1 className="text-xl font-black tracking-tighter uppercase">CWA PRO 助手</h1>
                             </div>
-                            <button onClick={fetchData} className="p-2 bg-white/10 rounded-full active:scale-95">
-                                <StaticIcon name="RefreshCw" size={18} className={obs.loading ? "animate-spin" : ""} />
+                            <button onClick={fetchData} className="p-2 bg-white/10 rounded-full">
+                                <Icon name="Refresh" className={obs.loading ? "animate-spin" : ""} />
                             </button>
                         </div>
                         <div className="grid grid-cols-2 gap-2 mb-4">
-                            <select value={city} onChange={e=>{setCity(e.target.value); setDist(TAIWAN_DATA[e.target.value][0])}} className="bg-white/10 border border-white/20 p-2 rounded-xl text-xs font-bold text-white outline-none">
-                                {Object.keys(TAIWAN_DATA).map(c=><option key={c} value={c} className="text-slate-800">{c}</option>)}
+                            <select value={city} onChange={e=>{setCity(e.target.value); setDist(ALL_AREAS[e.target.value][0])}} className="bg-white/10 border border-white/20 p-2 rounded-xl text-xs font-bold text-white outline-none">
+                                {Object.keys(ALL_AREAS).map(c=><option key={c} value={c} className="text-slate-800">{c}</option>)}
                             </select>
                             <select value={dist} onChange={e=>setDist(e.target.value)} className="bg-white/10 border border-white/20 p-2 rounded-xl text-xs font-bold text-white outline-none">
-                                {TAIWAN_DATA[city].map(d=><option key={d} value={d} className="text-slate-800">{d}</option>)}
+                                {ALL_AREAS[city].map(d=><option key={d} value={d} className="text-slate-800">{d}</option>)}
                             </select>
                         </div>
                         <nav className="flex gap-6 mt-2 border-b border-white/10">
@@ -126,7 +137,10 @@
                         {tab === 'judge' ? (
                             <>
                                 <section className="bg-slate-50 p-4 rounded-2xl border flex flex-col gap-3">
-                                    <div className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">測站觀測 ({obs.station})</div>
+                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex justify-between">
+                                        <span>實時觀測 ({obs.station})</span>
+                                        <span className="text-emerald-500 font-black">CWA LIVE</span>
+                                    </div>
                                     <div className="grid grid-cols-3 gap-2 text-center">
                                         <div className="bg-white p-2 rounded-xl border shadow-sm"><div className="text-[9px] text-slate-400">溫度</div><div className="font-black">{obs.t??'--'}°</div></div>
                                         <div className="bg-white p-2 rounded-xl border shadow-sm"><div className="text-[9px] text-slate-400">濕度</div><div className="font-black">{obs.h??'--'}%</div></div>
@@ -135,44 +149,43 @@
                                 </section>
 
                                 <section className="bg-slate-50 p-4 rounded-2xl border space-y-3">
-                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">室內數據輸入</div>
+                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1"><Icon name="Thermometer" className="w-3 h-3"/> 室內環境</div>
                                     <div className="grid grid-cols-2 gap-4">
-                                        <div><label className="text-[9px] text-slate-400 font-bold mb-1 block">室溫 °C</label><input type="number" step="0.1" value={indoor.t} onChange={e=>setIndoor({...indoor, t: e.target.value})} className="w-full p-2 border rounded-xl font-bold" /></div>
-                                        <div><label className="text-[9px] text-slate-400 font-bold mb-1 block">室濕 %</label><input type="number" step="1" value={indoor.h} onChange={e=>setIndoor({...indoor, h: e.target.value})} className="w-full p-2 border rounded-xl font-bold" /></div>
+                                        <input type="number" step="0.1" value={indoor.t} onChange={e=>setIndoor({...indoor, t: e.target.value})} className="w-full p-2 border rounded-xl font-bold bg-white" />
+                                        <input type="number" step="1" value={indoor.h} onChange={e=>setIndoor({...indoor, h: e.target.value})} className="w-full p-2 border rounded-xl font-bold bg-white" />
                                     </div>
                                 </section>
 
                                 {analysis && (
                                     <div className={`${analysis.pass?'bg-emerald-600':'bg-slate-700'} p-6 rounded-[2rem] text-white shadow-xl transition-all`}>
                                         <div className="flex items-center gap-3 mb-4">
-                                            <StaticIcon name={analysis.pass?"CheckCircle":"XCircle"} size={32} />
+                                            <Icon name={analysis.pass?"Check":"X"} />
                                             <h2 className="text-2xl font-black">{analysis.pass?'建議開窗':'建議關窗'}</h2>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <div className="bg-black/10 p-3 rounded-xl border border-white/10 text-center"><div className="text-[9px] opacity-60">露點差 (≥2.0)</div><div className="text-xl font-mono font-bold">{analysis.dDiff}</div></div>
-                                            <div className="bg-black/10 p-3 rounded-xl border border-white/10 text-center"><div className="text-[9px] opacity-60">溫差 (≤3.0)</div><div className="text-xl font-mono font-bold">{analysis.tDiff}</div></div>
+                                        <div className="grid grid-cols-2 gap-2 text-center">
+                                            <div className="bg-black/10 p-3 rounded-xl border border-white/10"><div className="text-[9px] opacity-60 font-bold">露點差 (≥2.0)</div><div className="text-xl font-mono font-bold">{analysis.dDiff}</div></div>
+                                            <div className="bg-black/10 p-3 rounded-xl border border-white/10 text-center"><div className="text-[9px] opacity-60 font-bold">溫差 (≤3.0)</div><div className="text-xl font-mono font-bold">{analysis.tDiff}</div></div>
                                         </div>
                                     </div>
                                 )}
                             </>
                         ) : (
                             <section className="space-y-4">
-                                <div className="bg-slate-900 p-6 rounded-[2rem] text-white">
-                                    <h3 className="text-sm font-bold mb-6 flex items-center gap-2 text-blue-400"><StaticIcon name="CloudRain" /> 72 小時降雨趨勢</h3>
-                                    {fc.loading ? <div className="h-40 flex items-center justify-center text-xs opacity-50">載入中...</div> : (
-                                        <div className="flex items-end justify-between h-32 gap-1">
+                                <div className="bg-slate-900 p-6 rounded-[2rem] text-white min-h-[250px] flex flex-col">
+                                    <h3 className="text-sm font-bold mb-6 flex items-center gap-2 text-blue-400"><Icon name="CloudRain" /> 72 小時降雨機率</h3>
+                                    {fc.loading ? (
+                                        <div className="flex-1 flex items-center justify-center text-xs opacity-50 font-black">數據載入中...</div>
+                                    ) : (
+                                        <div className="flex items-end justify-between h-32 gap-1 mb-4">
                                             {fc.data.map((d, i) => (
                                                 <div key={i} className="flex-1 flex flex-col items-center gap-1">
                                                     <div className="text-[8px] font-bold text-blue-300">{d.val}%</div>
                                                     <div className="w-full bg-blue-500/40 rounded-t-sm" style={{height: `${Math.max(d.val, 5)}%`}}></div>
-                                                    <div className="text-[7px] text-white/50 text-center whitespace-pre">{d.time}</div>
+                                                    <div className="text-[7px] text-white/50 text-center whitespace-pre mt-1">{d.time}</div>
                                                 </div>
                                             ))}
                                         </div>
                                     )}
-                                </div>
-                                <div className="text-[10px] text-slate-400 leading-relaxed border-l-2 border-slate-200 pl-3">
-                                    * 降雨機率由 CWA 預報提供。若機率 > 30%，即使除濕條件達成，仍建議定期檢查戶外天色。
                                 </div>
                             </section>
                         )}
