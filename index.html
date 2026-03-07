@@ -33,6 +33,7 @@
         };
 
         const CWA_API_KEY = "CWA-7EB3892B-FF69-4059-ABF7-BFFECE0E0B7E";
+        // 將 http 修正為 https，解決 GitHub Pages 混合內容阻擋問題
         const CWA_URL_MAIN = "https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0003-001?format=JSON";
         const CWA_URL_AUTO = "https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0001-001?format=JSON";
 
@@ -89,7 +90,6 @@
                         try {
                             res = await fetch(`${url}&Authorization=${CWA_API_KEY}`);
                         } catch (err) {
-                            // 捕捉網路層級的阻擋 (例如 CORS 或沒有網路)
                             throw new Error("網路請求被阻擋 (請確認是否直接點開本地檔案，或稍後再試)");
                         }
                         
@@ -131,7 +131,6 @@
                     let t = parseFloat(match.WeatherElement.AirTemperature);
                     let h = parseFloat(match.WeatherElement.RelativeHumidity);
                     
-                    // 氣象局儀器異常或未測量時，通常會回傳負值極端數字 (如 -99)
                     if (isNaN(t) || t < -50) t = null;
                     if (isNaN(h) || h < 0) h = null;
 
