@@ -1,576 +1,235 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>通風換氣判斷助手</title>
-  <!-- 引入 Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- 引入 Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>開窗判斷助手 - 終極整合版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 </head>
-<body class="bg-slate-100 p-4 md:p-8 font-sans text-slate-800 min-h-screen">
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-0 md:p-6 text-slate-800">
+    <div id="root" class="w-full max-w-lg"></div>
 
-  <div class="max-w-md mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
-    
-    <!-- Header -->
-    <div class="bg-blue-600 p-6 text-white text-center">
-      <h1 class="text-2xl font-bold flex items-center justify-center gap-2">
-        <i data-lucide="wind" class="w-7 h-7"></i>
-        通風換氣判斷助手
-      </h1>
-      <p class="text-blue-100 text-sm mt-2">雙模式版：支援氣象局數據校正</p>
-    </div>
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, Fragment } = React;
 
-    <div class="p-6 space-y-8">
-      
-      <!-- Section 1: 室外環境 (雙模式) -->
-      <section class="space-y-4">
-        <div class="flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-100">
-          <div class="flex items-center gap-2">
-            <i data-lucide="map-pin" class="w-5 h-5 text-blue-600"></i>
-            <h2 class="text-lg font-bold text-slate-700">室外環境</h2>
-          </div>
-          <div class="flex bg-slate-200 rounded-lg p-1">
-            <button id="btn-auto-mode" class="px-3 py-1 text-sm rounded-md transition-all bg-white shadow text-blue-600 font-bold">
-              自動 API
-            </button>
-            <button id="btn-manual-mode" class="px-3 py-1 text-sm rounded-md transition-all text-slate-500 hover:text-slate-700">
-              手動輸入
-            </button>
-          </div>
-        </div>
+        // --- 核心修正：SVG 圖標語法封裝 ---
+        const Icon = ({ name, className = "w-5 h-5" }) => {
+            const icons = {
+                Wind: <path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2m-6.8 6a2 2 0 1 1-1.4 3.4H2m16.7-16.8a3.5 3.5 0 1 1 3.1 6H2" />,
+                Droplets: <path d="M7 16.3c2.2 0 4-1.8 4-4 0-3.3-4-8-4-8s-4 4.7-4 8c0 2.2 1.8 4 4 4Z" />,
+                Thermometer: <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" />,
+                Refresh: <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8m0 0V3m0 5h5m-1 4a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16m0 0v5m0-5h-5" />,
+                Globe: <Fragment><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20M2 12h20" /></Fragment>,
+                MapPin: <Fragment><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></Fragment>,
+                Check: <polyline points="20 6 9 17 4 12" />,
+                X: <Fragment><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></Fragment>
+            };
+            return (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                    {icons[name] || <circle cx="12" cy="12" r="10" />}
+                </svg>
+            );
+        };
 
-        <!-- 自動模式：顯示地區選擇 -->
-        <div id="auto-mode-section" class="grid grid-cols-2 gap-3 transition-opacity duration-300">
-          <div class="relative">
-            <select id="city-select" class="w-full p-2 border border-slate-300 rounded-lg bg-slate-50 text-sm appearance-none outline-none focus:ring-2 focus:ring-blue-400"></select>
-            <div class="absolute right-2 top-2.5 pointer-events-none text-slate-500 text-xs">▼</div>
-          </div>
-          
-          <div class="relative">
-            <select id="district-select" class="w-full p-2 border border-slate-300 rounded-lg bg-slate-50 text-sm appearance-none outline-none focus:ring-2 focus:ring-blue-400"></select>
-            <div class="absolute right-2 top-2.5 pointer-events-none text-slate-500 text-xs">▼</div>
-          </div>
-          
-          <div class="col-span-2 flex justify-end mt-[-8px]">
-             <button id="refresh-btn" class="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors text-slate-500" title="更新天氣">
-              <i data-lucide="refresh-cw" class="w-4 h-4" id="refresh-icon"></i>
-            </button>
-          </div>
-        </div>
+        const CWA_API_KEY = "CWA-BDD150F7-F455-44CA-8E6B-F548BBB011CB";
+        const CWA_URL = "https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0003-001?format=JSON";
 
-        <!-- 手動模式：顯示輸入欄位 -->
-        <div id="manual-mode-section" class="space-y-5 bg-blue-50 p-4 rounded-xl border border-blue-100 hidden transition-opacity duration-300">
-          <div class="flex items-start gap-2 text-xs text-blue-600 mb-2">
-            <i data-lucide="settings-2" class="w-3.5 h-3.5 mt-0.5"></i>
-            <span>請參考 CWB 氣象局或實際溫度計數值輸入</span>
-          </div>
+        // --- 全台 22 縣市、368 行政區完整資料庫 (嚴格補回，不準動) ---
+        const TAIWAN_DATA = {
+            "台南市": ["中西區", "安平區", "東區", "南區", "北區", "安南區", "永康區", "歸仁區", "新化區", "左鎮區", "玉井區", "楠西區", "南化區", "仁德區", "關廟區", "龍崎區", "官田區", "麻豆區", "佳里區", "西港區", "七股區", "將軍區", "學甲區", "北門區", "新營區", "後壁區", "白河區", "東山區", "六甲區", "下營區", "柳營區", "鹽水區", "善化區", "大內區", "山上區", "新市區", "安定區"],
+            "台北市": ["中正區", "大同區", "中山區", "松山區", "大安區", "萬華區", "信義區", "士林區", "北投區", "內湖區", "南港區", "文山區"],
+            "新北市": ["板橋區", "三重區", "中和區", "永和區", "新莊區", "新店區", "樹林區", "鶯歌區", "三峽區", "淡水區", "汐止區", "瑞芳區", "土城區", "蘆洲區", "五股區", "泰山區", "林口區", "深坑區", "石碇區", "坪林區", "三芝區", "石門區", "八里區", "平溪區", "雙溪區", "貢寮區", "金山區", "萬里區", "烏來區"],
+            "桃園市": ["桃園區", "中壢區", "大溪區", "楊梅區", "蘆竹區", "大園區", "龜山區", "八德區", "龍潭區", "平鎮區", "新屋區", "觀音區", "復興區"],
+            "台中市": ["中區", "東區", "南區", "西區", "北區", "北屯區", "西屯區", "南屯區", "太平區", "大里區", "霧峰區", "烏日區", "豐原區", "後里區", "石岡區", "東勢區", "和平區", "新社區", "潭子區", "大雅區", "神岡區", "大肚區", "沙鹿區", "龍井區", "梧棲區", "清水區", "大甲區", "外埔區", "大安區"],
+            "高雄市": ["新興區", "前金區", "苓雅區", "鹽埕區", "鼓山區", "旗津區", "前鎮區", "三民區", "楠梓區", "小港區", "左營區", "仁武區", "大社區", "岡山區", "路竹區", "阿蓮區", "田寮區", "燕巢區", "橋頭區", "梓官區", "彌陀區", "永安區", "湖內區", "鳳山區", "大寮區", "林園區", "鳥松區", "大樹區", "旗山區", "美濃區", "六龜區", "內門區", "杉林區", "甲仙區", "桃源區", "那瑪夏區", "茂林區", "茄萣區"],
+            "基隆市": ["仁愛區", "信義區", "中正區", "中山區", "安樂區", "暖暖區", "七堵區"],
+            "新竹市": ["東區", "北區", "香山區"],
+            "新竹縣": ["竹北市", "竹東鎮", "新埔鎮", "關西鎮", "湖口鄉", "新豐鄉", "芎林鄉", "橫山鄉", "北埔鄉", "寶山鄉", "峨眉鄉", "尖石鄉", "五峰鄉"],
+            "苗栗縣": ["苗栗市", "頭份區", "竹南鎮", "後龍鎮", "通霄鎮", "苑裡鎮", "卓蘭鎮", "造橋鄉", "西湖鄉", "頭屋鄉", "公館鄉", "銅鑼鄉", "三義鄉", "大湖鄉", "獅潭鄉", "三灣鄉", "南庄鄉", "泰安鄉"],
+            "彰化縣": ["彰化市", "鹿港鎮", "和美鎮", "線西鄉", "伸港鄉", "福興鄉", "秀水鄉", "花壇鄉", "芬園鄉", "員林市", "溪湖鎮", "田中鎮", "大村鄉", "埔鹽鄉", "埔心鄉", "永靖鄉", "社頭鄉", "二水鄉", "北斗鎮", "二林鎮", "埤頭鄉", "芳苑鄉", "大城鄉", "竹塘鄉", "溪州鄉", "田尾鄉"],
+            "南投縣": ["南投市", "埔里鎮", "草屯鎮", "竹山鎮", "集集鎮", "名間鄉", "鹿谷鄉", "中寮鄉", "魚池鄉", "國姓鄉", "水里鄉", "信義鄉", "仁愛鄉"],
+            "雲林縣": ["斗六市", "斗南鎮", "虎尾鎮", "西螺鎮", "土庫鎮", "北港鎮", "古坑鄉", "大埤鄉", "莿桐鄉", "林內鄉", "二崙鄉", "崙背鄉", "麥寮鄉", "東勢鄉", "褒忠鄉", "台西鄉", "元長鄉", "四湖鄉", "口湖鄉", "水林鄉"],
+            "嘉義市": ["東區", "西區"],
+            "嘉義縣": ["太保市", "朴子市", "布袋鎮", "大林鎮", "民雄鄉", "溪口鄉", "新港鄉", "六腳鄉", "東石鄉", "義竹鄉", "鹿草鄉", "水上鄉", "中埔鄉", "竹崎鄉", "梅山鄉", "番路鄉", "大埔鄉", "阿里山"],
+            "屏東縣": ["屏東市", "三地門鄉", "霧台鄉", "瑪家鄉", "九如鄉", "里港鄉", "高樹鄉", "鹽埔鄉", "長治鄉", "麟洛鄉", "竹田鄉", "內埔鄉", "萬丹鄉", "潮州鎮", "泰武鄉", "來義鄉", "萬巒鄉", "崁頂鄉", "新埤鄉", "南州鄉", "林邊鄉", "東港鎮", "琉球鄉", "佳冬鄉", "新園鄉", "枋寮鄉", "枋山鄉", "春日鄉", "獅子鄉", "車城鄉", "牡丹鄉", "恆春鎮", "滿州鄉"],
+            "宜蘭縣": ["宜蘭市", "羅東鎮", "蘇澳鎮", "頭城鎮", "礁溪鄉", "壯圍鄉", "員山鄉", "冬山鄉", "五結鄉", "三星鄉", "大同鄉", "南澳鄉"],
+            "花蓮縣": ["花蓮市", "鳳林鎮", "玉里鎮", "新城鄉", "吉安鄉", "壽豐鄉", "光復鄉", "豐濱鄉", "瑞穗鄉", "富里鄉", "秀林鄉", "萬榮鄉", "卓溪鄉"],
+            "台東縣": ["台東市", "成功鎮", "關山鎮", "卑南鄉", "鹿野鄉", "池上鄉", "東河鄉", "長濱鄉", "太麻里", "大武鄉", "綠島鄉", "海端鄉", "延平鄉", "金峰鄉", "達仁鄉", "蘭嶼鄉"],
+            "澎湖縣": ["馬公市", "湖西鄉", "白沙鄉", "西嶼鄉", "望安鄉", "七美鄉"],
+            "金門縣": ["金城鎮", "金湖鎮", "金沙鎮", "金寧鄉", "烈嶼鄉", "烏坵鄉"],
+            "連江縣": ["南竿鄉", "北竿鄉", "莒光鄉", "東引鄉"]
+        };
 
-          <!-- 室外溫度 Slider -->
-          <div>
-            <div class="flex justify-between items-center mb-2">
-              <span class="text-slate-600 text-sm font-medium">室外溫度 (°C)</span>
-              <input type="number" id="manual-outdoor-temp-input" step="0.1" class="w-20 p-1 text-right border border-blue-300 rounded text-slate-800 font-bold bg-white focus:ring-2 focus:ring-blue-400 outline-none"/>
+        const calculateDP = (T, RH) => {
+            const t = parseFloat(T), rh = parseFloat(RH);
+            if (isNaN(t) || isNaN(rh) || rh <= 0) return null;
+            const a = 17.27, b = 237.7;
+            const alpha = ((a * t) / (b + t)) + Math.log(rh / 100.0);
+            return parseFloat(((b * alpha) / (a - alpha)).toFixed(1));
+        };
+
+        function App() {
+            const [algo, setAlgo] = useState('strict');
+            const [city, setCity] = useState("台南市");
+            const [dist, setDist] = useState("中西區");
+            const [isManual, setIsManual] = useState(false);
+            const [indoor, setIndoor] = useState({ t: 26, h: 70 });
+            const [apiData, setApiData] = useState({ t: null, h: null, station: "", loading: false });
+            const [manualOut, setManualOut] = useState({ t: 24, h: 65 });
+            const [noMoisture, setNoMoisture] = useState(true);
+
+            const fetchCWA = async () => {
+                setApiData(p => ({ ...p, loading: true }));
+                try {
+                    const res = await fetch(`${CWA_URL}&Authorization=${CWA_API_KEY}&locationName=${encodeURIComponent(city)}`);
+                    const data = await res.json();
+                    const s = data.records.Station.find(x => x.GeoInfo.TownName === dist) || data.records.Station[0];
+                    setApiData({ 
+                        t: parseFloat(s.WeatherElement.AirTemperature), 
+                        h: parseFloat(s.WeatherElement.RelativeHumidity), 
+                        station: s.StationName,
+                        loading: false
+                    });
+                } catch (e) { setApiData(p => ({ ...p, loading: false })); }
+            };
+
+            useEffect(() => { if (!isManual) fetchCWA(); }, [city, dist, isManual]);
+
+            const outT = isManual ? manualOut.t : apiData.t;
+            const outH = isManual ? manualOut.h : apiData.h;
+            const outDP = useMemo(() => calculateDP(outT, outH), [outT, outH]);
+            const inDP = useMemo(() => calculateDP(indoor.t, indoor.h), [indoor.t, indoor.h]);
+
+            const analysis = useMemo(() => {
+                if (inDP === null || outDP === null) return null;
+                const dDiff = (inDP - outDP).toFixed(1);
+                const tDiff = (outT - indoor.t).toFixed(1);
+
+                if (algo === 'strict') {
+                    const dOk = dDiff >= 2.0, tOk = tDiff <= 3.0;
+                    return { pass: dOk && tOk && noMoisture, color: dOk && tOk ? 'bg-emerald-600' : 'bg-slate-700', title: dOk && tOk ? '建議開窗' : '建議關窗', 
+                             items: [{ label: '露點差 (≥2.0)', val: dDiff, pass: dOk }, { label: '溫差 (≤3.0)', val: tDiff, pass: tOk }] };
+                } else {
+                    const sOk = outT > inDP, dOk = outDP < inDP;
+                    const can = sOk && dOk;
+                    return { pass: can && noMoisture, color: !sOk ? 'bg-red-600' : (can ? 'bg-blue-600' : 'bg-orange-500'), title: !sOk ? '反潮警報' : (can ? '建議開窗' : '建議關窗'),
+                             items: [{ label: '防反潮 (外溫>內露)', val: outT, pass: sOk }, { label: '排濕 (外露<內露)', val: outDP, pass: dOk }] };
+                }
+            }, [inDP, outDP, outT, indoor.t, algo, noMoisture]);
+
+            return (
+                <div className="min-h-screen bg-slate-100 p-4 md:p-8 flex items-center justify-center">
+                    <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200">
+                        
+                        <header className="bg-slate-900 p-6 text-white text-center">
+                            <h1 className="text-2xl font-black flex items-center justify-center gap-2">
+                                <Icon name="Wind" className="text-emerald-400 w-7 h-7" /> 開窗判斷助手
+                            </h1>
+                        </header>
+
+                        <main className="p-6 space-y-6">
+                            {/* 標準切換按鈕 (補回功能) [cite: 2026-01-22] */}
+                            <div className="flex bg-slate-100 p-1 rounded-2xl">
+                                <button onClick={()=>setAlgo('strict')} className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${algo==='strict'?'bg-white shadow text-slate-800':'text-slate-400'}`}>嚴格強效除濕</button>
+                                <button onClick={()=>setAlgo('standard')} className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${algo==='standard'?'bg-white shadow text-slate-800':'text-slate-400'}`}>一般物理防潮</button>
+                            </div>
+
+                            <section className="space-y-4">
+                                <div className="flex justify-between items-center bg-slate-50 p-2 rounded-2xl border">
+                                    <div className="flex items-center gap-2 pl-2"><Icon name="MapPin" className="text-blue-500" /><span className="font-bold text-sm">室外數據 ({apiData.station || 'API'})</span></div>
+                                    <div className="flex bg-slate-200 rounded-xl p-1">
+                                        <button onClick={()=>setIsManual(false)} className={`px-4 py-1.5 text-xs rounded-lg transition-all ${!isManual?'bg-white shadow font-bold text-blue-600':'text-slate-500'}`}>API</button>
+                                        <button onClick={()=>setIsManual(true)} className={`px-4 py-1.5 text-xs rounded-lg transition-all ${isManual?'bg-white shadow font-bold text-blue-600':'text-slate-500'}`}>手動</button>
+                                    </div>
+                                </div>
+
+                                {!isManual && (
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <select value={city} onChange={e=>{setCity(e.target.value); setDist(TAIWAN_DATA[e.target.value][0])}} className="p-3 border rounded-xl font-bold bg-slate-50 outline-none">
+                                            {Object.keys(TAIWAN_DATA).map(c=><option key={c} value={c}>{c}</option>)}
+                                        </select>
+                                        <select value={dist} onChange={e=>setDist(e.target.value)} className="p-3 border rounded-xl font-bold bg-slate-50 outline-none">
+                                            {TAIWAN_DATA[city]?.map(d=><option key={d} value={d}>{d}</option>)}
+                                        </select>
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-3 gap-2">
+                                    <DataCard label="溫度" value={outT} unit="°" icon="Thermometer" loading={apiData.loading} />
+                                    <DataCard label="濕度" value={outH} unit="%" icon="Droplets" loading={apiData.loading} />
+                                    <DataCard label="露點" value={outDP} unit="°" icon="Wind" highlight loading={apiData.loading} />
+                                </div>
+                            </section>
+
+                            <section className="space-y-4">
+                                <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 pl-1"><Icon name="Thermometer" className="text-orange-500 w-4 h-4" /> 室內環境 (Indoor)</h2>
+                                <div className="bg-orange-50/50 p-4 rounded-[1.5rem] border border-orange-100 space-y-4">
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <div className="bg-white p-2 rounded-xl border border-orange-100 text-center shadow-sm">
+                                            <div className="text-[9px] font-black text-orange-400 uppercase mb-1">溫度 °C</div>
+                                            <input type="number" step="0.1" value={indoor.t} onChange={e=>setIndoor({...indoor, t: parseFloat(e.target.value) || 0})} className="w-full text-center text-lg font-black bg-transparent outline-none" />
+                                        </div>
+                                        <div className="bg-white p-2 rounded-xl border border-orange-100 text-center shadow-sm">
+                                            <div className="text-[9px] font-black text-orange-400 uppercase mb-1">濕度 %</div>
+                                            <input type="number" step="1" value={indoor.h} onChange={e=>setIndoor({...indoor, h: parseFloat(e.target.value) || 0})} className="w-full text-center text-lg font-black bg-transparent outline-none" />
+                                        </div>
+                                        <div className="bg-indigo-600 p-2 rounded-xl text-center shadow-lg shadow-indigo-200 flex flex-col justify-center">
+                                            <div className="text-[9px] font-black text-indigo-200 uppercase mb-1">內露點</div>
+                                            <div className="text-lg font-black text-white">{inDP ?? '--'}°</div>
+                                        </div>
+                                    </div>
+                                    <div className="px-1 space-y-4">
+                                        <input type="range" min="15" max="35" step="0.1" value={indoor.t} onChange={e=>setIndoor({...indoor, t: parseFloat(e.target.value)})} className="w-full h-1.5 bg-orange-200 rounded-lg appearance-none cursor-pointer accent-orange-500" />
+                                        <input type="range" min="30" max="95" step="1" value={indoor.h} onChange={e=>setIndoor({...indoor, h: parseFloat(e.target.value)})} className="w-full h-1.5 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-500" />
+                                    </div>
+                                </div>
+                                <label className="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-2xl cursor-pointer hover:bg-slate-50 transition-all shadow-sm">
+                                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${noMoisture ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300'}`}>
+                                        {noMoisture && <Icon name="Check" className="text-white w-4 h-4" />}
+                                    </div>
+                                    <input type="checkbox" checked={noMoisture} onChange={()=>setNoMoisture(!noMoisture)} className="hidden" />
+                                    <span className="text-xs font-black text-slate-600 uppercase tracking-tighter">無強濕源 (無曬衣、烹飪)</span>
+                                </label>
+                            </section>
+
+                            {analysis && (
+                                <section className="space-y-3">
+                                    <div className="space-y-2">
+                                        {analysis.items.map((item, i) => (
+                                            <div key={i} className={`flex items-center gap-4 p-3 bg-white border rounded-2xl shadow-sm ${item.pass ? 'border-emerald-100' : 'border-red-100'}`}>
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${item.pass ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}><Icon name={item.pass ? "Check" : "X"} className="w-5 h-5" /></div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex justify-between items-center mb-0.5"><h4 className="font-black text-xs text-slate-700">{item.label}</h4><span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${item.pass ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>{item.pass ? "符合" : "不合"}</span></div>
+                                                    <div className="font-mono text-[9px] text-slate-400 truncate">目前數值: {item.val}</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className={`p-6 rounded-[2.5rem] text-center border-4 transition-all duration-500 ${analysis.pass ? 'bg-emerald-50 border-emerald-500/20' : 'bg-red-50 border-red-500/20'}`}>
+                                        <h3 className={`text-3xl font-black mb-2 ${analysis.pass ? 'text-emerald-700' : 'text-red-700'}`}>{analysis.pass ? "✅ 建議開窗" : "❌ 建議關窗"}</h3>
+                                        <p className="text-[11px] font-bold opacity-60 uppercase tracking-widest">{analysis.title}</p>
+                                    </div>
+                                </section>
+                            )}
+                        </main>
+                        <footer className="p-4 text-center text-[9px] text-slate-400 border-t bg-slate-50 font-bold uppercase tracking-widest">CWA O-A0003-001 | 368 Districts Integrated</footer>
+                    </div>
+                </div>
+            );
+        }
+
+        const DataCard = ({ label, value, unit, icon, highlight, loading }) => (
+            <div className={`p-3 rounded-2xl text-center border transition-all ${highlight ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg shadow-emerald-100' : 'bg-white border-slate-100 shadow-sm'}`}>
+                <div className={`text-[9px] font-black flex justify-center items-center gap-1 mb-1 ${highlight ? 'text-emerald-100' : 'text-slate-400 uppercase'}`}><Icon name={icon} className="w-3 h-3" /> {label}</div>
+                {loading ? <div className="h-6 w-12 bg-slate-100 rounded animate-pulse mx-auto"></div> : <div className="text-lg font-black">{value ?? '--'}<span className="text-[10px] ml-0.5 font-normal">{unit}</span></div>}
             </div>
-            <input type="range" id="manual-outdoor-temp-range" min="0" max="40" step="0.1" class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600"/>
-          </div>
-
-          <!-- 室外濕度 Slider -->
-          <div>
-            <div class="flex justify-between items-center mb-2">
-              <span class="text-slate-600 text-sm font-medium">室外濕度 (%)</span>
-              <input type="number" id="manual-outdoor-humidity-input" step="1" class="w-20 p-1 text-right border border-blue-300 rounded text-slate-800 font-bold bg-white focus:ring-2 focus:ring-blue-400 outline-none"/>
-            </div>
-            <input type="range" id="manual-outdoor-humidity-range" min="20" max="100" step="1" class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600"/>
-          </div>
-        </div>
-
-        <!-- 錯誤訊息 -->
-        <div id="error-message" class="hidden p-3 bg-red-50 text-red-600 text-sm rounded-lg items-center gap-2">
-          <i data-lucide="alert-triangle" class="w-4 h-4"></i> <span id="error-text"></span>
-        </div>
-
-        <!-- 室外數據顯示卡片 -->
-        <div id="outdoor-data-cards" class="grid grid-cols-3 gap-2 mt-2">
-          <!-- 卡片由 JS 動態更新 -->
-        </div>
-      </section>
-
-      <!-- Section 2: 室內環境 (手動輸入 + Slider) -->
-      <section class="space-y-4">
-        <h2 class="text-lg font-bold flex items-center gap-2 text-slate-700">
-          <i data-lucide="thermometer" class="w-5 h-5 text-orange-500"></i>
-          室內環境設定
-        </h2>
-        
-        <div class="space-y-5 bg-orange-50 p-4 rounded-xl border border-orange-100">
-          
-          <!-- 室內溫度 -->
-          <div>
-            <div class="flex justify-between items-center mb-2">
-              <span class="text-slate-600 text-sm font-medium">室內溫度 (°C)</span>
-              <input type="number" id="indoor-temp-input" step="0.1" class="w-20 p-1 text-right border border-orange-300 rounded text-slate-800 font-bold bg-white focus:ring-2 focus:ring-orange-400 outline-none"/>
-            </div>
-            <input type="range" id="indoor-temp-range" min="10" max="40" step="0.1" class="w-full h-2 bg-slate-300 rounded-lg appearance-none cursor-pointer accent-orange-500"/>
-          </div>
-
-          <!-- 室內濕度 -->
-          <div>
-            <div class="flex justify-between items-center mb-2">
-              <span class="text-slate-600 text-sm font-medium">室內濕度 (%)</span>
-              <input type="number" id="indoor-humidity-input" step="1" class="w-20 p-1 text-right border border-orange-300 rounded text-slate-800 font-bold bg-white focus:ring-2 focus:ring-blue-400 outline-none"/>
-            </div>
-            <input type="range" id="indoor-humidity-range" min="30" max="99" step="1" class="w-full h-2 bg-slate-300 rounded-lg appearance-none cursor-pointer accent-blue-500"/>
-          </div>
-
-          <!-- 室內露點顯示 -->
-          <div class="flex items-center justify-between pt-3 border-t border-orange-200">
-            <span class="text-sm text-slate-600 font-medium">計算室內露點:</span>
-            <span class="text-xl font-bold text-orange-700" id="indoor-dew-point-display">--°C</span>
-          </div>
-        </div>
-        
-        <!-- 強濕源 Checkbox -->
-        <label class="flex items-center gap-3 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
-          <div id="moisture-checkbox-ui" class="w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors bg-green-500 border-green-500">
-            <i data-lucide="check-circle-2" id="moisture-check-icon" class="w-4 h-4 text-white"></i>
-          </div>
-          <input type="checkbox" id="no-moisture-checkbox" checked class="hidden"/>
-          <span class="text-sm font-medium text-slate-700">
-            目前無強濕源
-            <span class="block text-xs text-slate-400 font-normal">沒有在曬衣、煮飯、拖地</span>
-          </span>
-        </label>
-      </section>
-
-      <!-- Section 3: 分析結果 -->
-      <section class="space-y-4">
-        <h2 class="text-lg font-bold flex items-center gap-2 text-slate-700">
-          <i data-lucide="check-circle-2" class="w-5 h-5 text-green-600"></i>
-          分析結果
-        </h2>
-
-        <div id="loading-skeleton" class="h-32 bg-slate-100 rounded-xl animate-pulse hidden"></div>
-        <div id="waiting-text" class="text-center text-slate-400 py-4 hidden">等待氣象資料...</div>
-
-        <div id="analysis-results" class="space-y-3">
-          <!-- 條件項目由 JS 動態更新 -->
-        </div>
-      </section>
-
-      <!-- 最終建議 -->
-      <div id="final-recommendation" class="p-4 rounded-xl text-center border-2 hidden">
-        <h3 id="recommendation-title" class="text-2xl font-bold mb-1"></h3>
-        <p id="recommendation-desc" class="text-sm"></p>
-      </div>
-
-    </div>
-    
-    <div class="bg-slate-50 p-4 text-center text-xs text-slate-400" id="data-source-footer">
-      資料來源: Open-Meteo Weather API
-    </div>
-  </div>
-
-  <script>
-    // --- 全台行政區經緯度完整資料庫 (368鄉鎮市區) ---
-    const TAIWAN_LOCATIONS = {
-      "基隆市": [{ name: "仁愛區", lat: 25.127, lon: 121.741 }, { name: "信義區", lat: 25.127, lon: 121.758 }, { name: "中正區", lat: 25.141, lon: 121.761 }, { name: "中山區", lat: 25.148, lon: 121.733 }, { name: "安樂區", lat: 25.138, lon: 121.716 }, { name: "暖暖區", lat: 25.099, lon: 121.745 }, { name: "七堵區", lat: 25.093, lon: 121.698 }],
-      "臺北市": [{ name: "中正區", lat: 25.032, lon: 121.516 }, { name: "大同區", lat: 25.063, lon: 121.513 }, { name: "中山區", lat: 25.068, lon: 121.533 }, { name: "松山區", lat: 25.058, lon: 121.558 }, { name: "大安區", lat: 25.026, lon: 121.543 }, { name: "萬華區", lat: 25.029, lon: 121.498 }, { name: "信義區", lat: 25.029, lon: 121.569 }, { name: "士林區", lat: 25.093, lon: 121.524 }, { name: "北投區", lat: 25.132, lon: 121.498 }, { name: "內湖區", lat: 25.083, lon: 121.587 }, { name: "南港區", lat: 25.055, lon: 121.617 }, { name: "文山區", lat: 24.998, lon: 121.554 }],
-      "新北市": [{ name: "板橋區", lat: 25.011, lon: 121.465 }, { name: "三重區", lat: 25.063, lon: 121.492 }, { name: "中和區", lat: 24.999, lon: 121.496 }, { name: "永和區", lat: 25.008, lon: 121.513 }, { name: "新莊區", lat: 25.036, lon: 121.450 }, { name: "新店區", lat: 24.968, lon: 121.541 }, { name: "樹林區", lat: 24.982, lon: 121.423 }, { name: "鶯歌區", lat: 24.954, lon: 121.353 }, { name: "三峽區", lat: 24.925, lon: 121.365 }, { name: "淡水區", lat: 25.169, lon: 121.444 }, { name: "汐止區", lat: 25.067, lon: 121.649 }, { name: "瑞芳區", lat: 25.108, lon: 121.805 }, { name: "土城區", lat: 24.973, lon: 121.444 }, { name: "蘆洲區", lat: 25.085, lon: 121.472 }, { name: "五股區", lat: 25.084, lon: 121.438 }, { name: "泰山區", lat: 25.059, lon: 121.428 }, { name: "林口區", lat: 25.077, lon: 121.393 }, { name: "深坑區", lat: 25.002, lon: 121.616 }, { name: "石碇區", lat: 24.991, lon: 121.660 }, { name: "坪林區", lat: 24.936, lon: 121.710 }, { name: "三芝區", lat: 25.258, lon: 121.500 }, { name: "石門區", lat: 25.290, lon: 121.567 }, { name: "八里區", lat: 25.146, lon: 121.399 }, { name: "平溪區", lat: 25.025, lon: 121.739 }, { name: "雙溪區", lat: 25.036, lon: 121.865 }, { name: "貢寮區", lat: 25.021, lon: 121.942 }, { name: "金山區", lat: 25.222, lon: 121.637 }, { name: "萬里區", lat: 25.176, lon: 121.688 }, { name: "烏來區", lat: 24.865, lon: 121.551 }],
-      "桃園市": [{ name: "桃園區", lat: 24.993, lon: 121.301 }, { name: "中壢區", lat: 24.965, lon: 121.225 }, { name: "大溪區", lat: 24.880, lon: 121.286 }, { name: "楊梅區", lat: 24.912, lon: 121.145 }, { name: "蘆竹區", lat: 25.045, lon: 121.291 }, { name: "大園區", lat: 25.065, lon: 121.196 }, { name: "龜山區", lat: 25.000, lon: 121.350 }, { name: "八德區", lat: 24.948, lon: 121.296 }, { name: "龍潭區", lat: 24.863, lon: 121.215 }, { name: "平鎮區", lat: 24.945, lon: 121.217 }, { name: "新屋區", lat: 24.972, lon: 121.105 }, { name: "觀音區", lat: 25.037, lon: 121.080 }, { name: "復興區", lat: 24.823, lon: 121.357 }],
-      "新竹市": [{ name: "東區", lat: 24.805, lon: 120.992 }, { name: "北區", lat: 24.819, lon: 120.957 }, { name: "香山區", lat: 24.768, lon: 120.941 }],
-      "新竹縣": [{ name: "竹北市", lat: 24.839, lon: 121.009 }, { name: "關西鎮", lat: 24.789, lon: 121.176 }, { name: "新埔鎮", lat: 24.830, lon: 121.072 }, { name: "竹東鎮", lat: 24.737, lon: 121.092 }, { name: "湖口鄉", lat: 24.903, lon: 121.044 }, { name: "橫山鄉", lat: 24.710, lon: 121.115 }, { name: "新豐鄉", lat: 24.899, lon: 120.995 }, { name: "芎林鄉", lat: 24.774, lon: 121.077 }, { name: "寶山鄉", lat: 24.759, lon: 121.018 }, { name: "北埔鄉", lat: 24.698, lon: 121.057 }, { name: "峨眉鄉", lat: 24.686, lon: 121.015 }, { name: "尖石鄉", lat: 24.706, lon: 121.198 }, { name: "五峰鄉", lat: 24.630, lon: 121.119 }],
-      "苗栗縣": [{ name: "苗栗市", lat: 24.569, lon: 120.821 }, { name: "頭份市", lat: 24.686, lon: 120.895 }, { name: "苑裡鎮", lat: 24.442, lon: 120.648 }, { name: "通霄鎮", lat: 24.489, lon: 120.678 }, { name: "竹南鎮", lat: 24.686, lon: 120.879 }, { name: "後龍鎮", lat: 24.615, lon: 120.787 }, { name: "卓蘭鎮", lat: 24.316, lon: 120.826 }, { name: "大湖鄉", lat: 24.423, lon: 120.868 }, { name: "公館鄉", lat: 24.498, lon: 120.826 }, { name: "銅鑼鄉", lat: 24.486, lon: 120.787 }, { name: "南庄鄉", lat: 24.597, lon: 121.006 }, { name: "頭屋鄉", lat: 24.576, lon: 120.852 }, { name: "三義鄉", lat: 24.407, lon: 120.770 }, { name: "西湖鄉", lat: 24.549, lon: 120.749 }, { name: "造橋鄉", lat: 24.639, lon: 120.867 }, { name: "三灣鄉", lat: 24.654, lon: 120.949 }, { name: "獅潭鄉", lat: 24.542, lon: 120.920 }, { name: "泰安鄉", lat: 24.441, lon: 120.916 }],
-      "臺中市": [{ name: "中區", lat: 24.141, lon: 120.680 }, { name: "東區", lat: 24.135, lon: 120.702 }, { name: "南區", lat: 24.120, lon: 120.662 }, { name: "西區", lat: 24.143, lon: 120.665 }, { name: "北區", lat: 24.162, lon: 120.680 }, { name: "西屯區", lat: 24.163, lon: 120.640 }, { name: "南屯區", lat: 24.138, lon: 120.640 }, { name: "北屯區", lat: 24.180, lon: 120.710 }, { name: "豐原區", lat: 24.254, lon: 120.720 }, { name: "東勢區", lat: 24.257, lon: 120.825 }, { name: "大甲區", lat: 24.346, lon: 120.627 }, { name: "清水區", lat: 24.270, lon: 120.574 }, { name: "沙鹿區", lat: 24.234, lon: 120.559 }, { name: "梧棲區", lat: 24.255, lon: 120.536 }, { name: "后里區", lat: 24.305, lon: 120.710 }, { name: "神岡區", lat: 24.258, lon: 120.660 }, { name: "潭子區", lat: 24.209, lon: 120.705 }, { name: "大雅區", lat: 24.229, lon: 120.646 }, { name: "新社區", lat: 24.235, lon: 120.812 }, { name: "石岡區", lat: 24.275, lon: 120.774 }, { name: "外埔區", lat: 24.331, lon: 120.650 }, { name: "大安區", lat: 24.385, lon: 120.587 }, { name: "烏日區", lat: 24.106, lon: 120.622 }, { name: "大肚區", lat: 24.154, lon: 120.540 }, { name: "龍井區", lat: 24.195, lon: 120.546 }, { name: "霧峰區", lat: 24.062, lon: 120.699 }, { name: "太平區", lat: 24.126, lon: 120.719 }, { name: "大里區", lat: 24.101, lon: 120.678 }, { name: "和平區", lat: 24.171, lon: 120.939 }],
-      "彰化縣": [{ name: "彰化市", lat: 24.081, lon: 120.538 }, { name: "員林市", lat: 23.959, lon: 120.569 }, { name: "鹿港鎮", lat: 24.054, lon: 120.435 }, { name: "和美鎮", lat: 24.111, lon: 120.500 }, { name: "北斗鎮", lat: 23.872, lon: 120.525 }, { name: "溪湖鎮", lat: 23.962, lon: 120.481 }, { name: "田中鎮", lat: 23.861, lon: 120.590 }, { name: "二林鎮", lat: 23.899, lon: 120.373 }, { name: "線西鄉", lat: 24.128, lon: 120.468 }, { name: "伸港鄉", lat: 24.146, lon: 120.485 }, { name: "福興鄉", lat: 24.037, lon: 120.443 }, { name: "秀水鄉", lat: 24.036, lon: 120.503 }, { name: "花壇鄉", lat: 24.029, lon: 120.539 }, { name: "芬園鄉", lat: 24.014, lon: 120.629 }, { name: "大村鄉", lat: 23.993, lon: 120.544 }, { name: "埔鹽鄉", lat: 24.000, lon: 120.460 }, { name: "埔心鄉", lat: 23.954, lon: 120.543 }, { name: "永靖鄉", lat: 23.924, lon: 120.547 }, { name: "社頭鄉", lat: 23.897, lon: 120.582 }, { name: "二水鄉", lat: 23.816, lon: 120.617 }, { name: "田尾鄉", lat: 23.891, lon: 120.524 }, { name: "埤頭鄉", lat: 23.889, lon: 120.462 }, { name: "芳苑鄉", lat: 23.925, lon: 120.320 }, { name: "大城鄉", lat: 23.854, lon: 120.279 }, { name: "竹塘鄉", lat: 23.860, lon: 120.428 }, { name: "溪州鄉", lat: 23.852, lon: 120.501 }],
-      "南投縣": [{ name: "南投市", lat: 23.909, lon: 120.686 }, { name: "埔里鎮", lat: 23.966, lon: 120.968 }, { name: "草屯鎮", lat: 23.974, lon: 120.683 }, { name: "竹山鎮", lat: 23.757, lon: 120.672 }, { name: "集集鎮", lat: 23.830, lon: 120.785 }, { name: "名間鄉", lat: 23.871, lon: 120.702 }, { name: "鹿谷鄉", lat: 23.744, lon: 120.752 }, { name: "中寮鄉", lat: 23.879, lon: 120.784 }, { name: "魚池鄉", lat: 23.895, lon: 120.936 }, { name: "國姓鄉", lat: 24.041, lon: 120.854 }, { name: "水里鄉", lat: 23.812, lon: 120.854 }, { name: "信義鄉", lat: 23.684, lon: 120.893 }, { name: "仁愛鄉", lat: 24.024, lon: 121.119 }],
-      "雲林縣": [{ name: "斗六市", lat: 23.708, lon: 120.541 }, { name: "斗南鎮", lat: 23.676, lon: 120.481 }, { name: "虎尾鎮", lat: 23.708, lon: 120.435 }, { name: "西螺鎮", lat: 23.794, lon: 120.460 }, { name: "土庫鎮", lat: 23.676, lon: 120.393 }, { name: "北港鎮", lat: 23.575, lon: 120.306 }, { name: "古坑鄉", lat: 23.642, lon: 120.562 }, { name: "大埤鄉", lat: 23.645, lon: 120.431 }, { name: "莿桐鄉", lat: 23.760, lon: 120.520 }, { name: "林內鄉", lat: 23.759, lon: 120.612 }, { name: "二崙鄉", lat: 23.771, lon: 120.415 }, { name: "崙背鄉", lat: 23.760, lon: 120.354 }, { name: "麥寮鄉", lat: 23.750, lon: 120.252 }, { name: "東勢鄉", lat: 23.689, lon: 120.252 }, { name: "褒忠鄉", lat: 23.693, lon: 120.310 }, { name: "臺西鄉", lat: 23.707, lon: 120.198 }, { name: "元長鄉", lat: 23.647, lon: 120.313 }, { name: "四湖鄉", lat: 23.636, lon: 120.226 }, { name: "口湖鄉", lat: 23.582, lon: 120.185 }, { name: "水林鄉", lat: 23.576, lon: 120.246 }],
-      "嘉義市": [{ name: "東區", lat: 23.483, lon: 120.457 }, { name: "西區", lat: 23.479, lon: 120.432 }],
-      "嘉義縣": [{ name: "太保市", lat: 23.459, lon: 120.332 }, { name: "朴子市", lat: 23.468, lon: 120.247 }, { name: "布袋鎮", lat: 23.378, lon: 120.160 }, { name: "大林鎮", lat: 23.603, lon: 120.472 }, { name: "民雄鄉", lat: 23.553, lon: 120.428 }, { name: "溪口鄉", lat: 23.601, lon: 120.393 }, { name: "新港鄉", lat: 23.555, lon: 120.347 }, { name: "六腳鄉", lat: 23.492, lon: 120.291 }, { name: "東石鄉", lat: 23.456, lon: 120.166 }, { name: "義竹鄉", lat: 23.336, lon: 120.244 }, { name: "鹿草鄉", lat: 23.411, lon: 120.310 }, { name: "水上鄉", lat: 23.428, lon: 120.396 }, { name: "中埔鄉", lat: 23.425, lon: 120.505 }, { name: "竹崎鄉", lat: 23.518, lon: 120.552 }, { name: "梅山鄉", lat: 23.582, lon: 120.563 }, { name: "番路鄉", lat: 23.431, lon: 120.613 }, { name: "大埔鄉", lat: 23.296, lon: 120.592 }, { name: "阿里山鄉", lat: 23.509, lon: 120.803 }],
-      "臺南市": [{ name: "中西區", lat: 22.991, lon: 120.204 }, { name: "東區", lat: 22.985, lon: 120.223 }, { name: "南區", lat: 22.964, lon: 120.191 }, { name: "北區", lat: 23.007, lon: 120.209 }, { name: "安平區", lat: 22.992, lon: 120.170 }, { name: "安南區", lat: 23.045, lon: 120.184 }, { name: "永康區", lat: 23.018, lon: 120.255 }, { name: "歸仁區", lat: 22.968, lon: 120.296 }, { name: "新化區", lat: 23.037, lon: 120.309 }, { name: "左鎮區", lat: 23.056, lon: 120.408 }, { name: "玉井區", lat: 23.124, lon: 120.461 }, { name: "楠西區", lat: 23.174, lon: 120.485 }, { name: "南化區", lat: 23.044, lon: 120.477 }, { name: "仁德區", lat: 22.973, lon: 120.253 }, { name: "關廟區", lat: 22.962, lon: 120.327 }, { name: "龍崎區", lat: 22.963, lon: 120.360 }, { name: "官田區", lat: 23.184, lon: 120.313 }, { name: "麻豆區", lat: 23.185, lon: 120.248 }, { name: "佳里區", lat: 23.167, lon: 120.177 }, { name: "西港區", lat: 23.123, lon: 120.203 }, { name: "七股區", lat: 23.141, lon: 120.140 }, { name: "將軍區", lat: 23.200, lon: 120.155 }, { name: "學甲區", lat: 23.232, lon: 120.180 }, { name: "北門區", lat: 23.268, lon: 120.124 }, { name: "新營區", lat: 23.308, lon: 120.315 }, { name: "後壁區", lat: 23.366, lon: 120.360 }, { name: "白河區", lat: 23.350, lon: 120.416 }, { name: "東山區", lat: 23.324, lon: 120.403 }, { name: "六甲區", lat: 23.228, lon: 120.347 }, { name: "下營區", lat: 23.236, lon: 120.264 }, { name: "柳營區", lat: 23.278, lon: 120.311 }, { name: "鹽水區", lat: 23.320, lon: 120.266 }, { name: "善化區", lat: 23.131, lon: 120.294 }, { name: "大內區", lat: 23.119, lon: 120.354 }, { name: "山上區", lat: 23.104, lon: 120.354 }, { name: "新市區", lat: 23.078, lon: 120.294 }, { name: "安定區", lat: 23.122, lon: 120.237 }],
-      "高雄市": [{ name: "鹽埕區", lat: 22.624, lon: 120.286 }, { name: "鼓山區", lat: 22.656, lon: 120.274 }, { name: "左營區", lat: 22.693, lon: 120.295 }, { name: "楠梓區", lat: 22.728, lon: 120.327 }, { name: "三民區", lat: 22.648, lon: 120.322 }, { name: "新興區", lat: 22.626, lon: 120.309 }, { name: "前金區", lat: 22.628, lon: 120.294 }, { name: "苓雅區", lat: 22.620, lon: 120.312 }, { name: "前鎮區", lat: 22.586, lon: 120.317 }, { name: "旗津區", lat: 22.565, lon: 120.272 }, { name: "小港區", lat: 22.538, lon: 120.355 }, { name: "鳳山區", lat: 22.626, lon: 120.357 }, { name: "林園區", lat: 22.502, lon: 120.394 }, { name: "大寮區", lat: 22.605, lon: 120.395 }, { name: "大樹區", lat: 22.693, lon: 120.432 }, { name: "大社區", lat: 22.730, lon: 120.347 }, { name: "仁武區", lat: 22.698, lon: 120.346 }, { name: "鳥松區", lat: 22.659, lon: 120.364 }, { name: "岡山區", lat: 22.796, lon: 120.296 }, { name: "橋頭區", lat: 22.757, lon: 120.306 }, { name: "燕巢區", lat: 22.793, lon: 120.360 }, { name: "田寮區", lat: 22.871, lon: 120.365 }, { name: "阿蓮區", lat: 22.884, lon: 120.326 }, { name: "路竹區", lat: 22.854, lon: 120.262 }, { name: "湖內區", lat: 22.909, lon: 120.218 }, { name: "茄萣區", lat: 22.906, lon: 120.181 }, { name: "永安區", lat: 22.822, lon: 120.226 }, { name: "彌陀區", lat: 22.783, lon: 120.247 }, { name: "梓官區", lat: 22.760, lon: 120.264 }, { name: "旗山區", lat: 22.888, lon: 120.482 }, { name: "美濃區", lat: 22.898, lon: 120.539 }, { name: "六龜區", lat: 23.003, lon: 120.633 }, { name: "甲仙區", lat: 23.082, lon: 120.590 }, { name: "杉林區", lat: 22.969, lon: 120.536 }, { name: "內門區", lat: 22.946, lon: 120.460 }, { name: "茂林區", lat: 22.889, lon: 120.666 }, { name: "桃源區", lat: 23.161, lon: 120.760 }, { name: "那瑪夏區", lat: 23.218, lon: 120.693 }],
-      "屏東縣": [{ name: "屏東市", lat: 22.669, lon: 120.486 }, { name: "潮州鎮", lat: 22.550, lon: 120.542 }, { name: "東港鎮", lat: 22.467, lon: 120.453 }, { name: "恆春鎮", lat: 22.003, lon: 120.744 }, { name: "萬丹鄉", lat: 22.589, lon: 120.485 }, { name: "長治鄉", lat: 22.684, lon: 120.528 }, { name: "麟洛鄉", lat: 22.651, lon: 120.526 }, { name: "九如鄉", lat: 22.739, lon: 120.490 }, { name: "里港鄉", lat: 22.777, lon: 120.494 }, { name: "鹽埔鄉", lat: 22.756, lon: 120.573 }, { name: "高樹鄉", lat: 22.825, lon: 120.602 }, { name: "萬巒鄉", lat: 22.573, lon: 120.567 }, { name: "內埔鄉", lat: 22.615, lon: 120.566 }, { name: "竹田鄉", lat: 22.585, lon: 120.543 }, { name: "新埤鄉", lat: 22.470, lon: 120.549 }, { name: "枋寮鄉", lat: 22.367, lon: 120.593 }, { name: "新園鄉", lat: 22.540, lon: 120.461 }, { name: "崁頂鄉", lat: 22.514, lon: 120.485 }, { name: "林邊鄉", lat: 22.435, lon: 120.515 }, { name: "南州鄉", lat: 22.491, lon: 120.510 }, { name: "佳冬鄉", lat: 22.417, lon: 120.547 }, { name: "琉球鄉", lat: 22.345, lon: 120.369 }, { name: "車城鄉", lat: 22.072, lon: 120.712 }, { name: "滿州鄉", lat: 22.022, lon: 120.838 }, { name: "枋山鄉", lat: 22.260, lon: 120.654 }, { name: "三地門鄉", lat: 22.714, lon: 120.652 }, { name: "霧臺鄉", lat: 22.748, lon: 120.730 }, { name: "瑪家鄉", lat: 22.643, lon: 120.645 }, { name: "泰武鄉", lat: 22.592, lon: 120.634 }, { name: "來義鄉", lat: 22.525, lon: 120.633 }, { name: "春日鄉", lat: 22.370, lon: 120.628 }, { name: "獅子鄉", lat: 22.203, lon: 120.706 }, { name: "牡丹鄉", lat: 22.127, lon: 120.822 }],
-      "宜蘭縣": [{ name: "宜蘭市", lat: 24.757, lon: 121.752 }, { name: "羅東鎮", lat: 24.676, lon: 121.768 }, { name: "蘇澳鎮", lat: 24.594, lon: 121.841 }, { name: "頭城鎮", lat: 24.858, lon: 121.823 }, { name: "礁溪鄉", lat: 24.823, lon: 121.770 }, { name: "壯圍鄉", lat: 24.778, lon: 121.782 }, { name: "員山鄉", lat: 24.739, lon: 121.721 }, { name: "冬山鄉", lat: 24.636, lon: 121.791 }, { name: "五結鄉", lat: 24.693, lon: 121.798 }, { name: "三星鄉", lat: 24.667, lon: 121.650 }, { name: "大同鄉", lat: 24.676, lon: 121.606 }, { name: "南澳鄉", lat: 24.474, lon: 121.797 }],
-      "花蓮縣": [{ name: "花蓮市", lat: 23.991, lon: 121.606 }, { name: "鳳林鎮", lat: 23.745, lon: 121.451 }, { name: "玉里鎮", lat: 23.336, lon: 121.314 }, { name: "新城鄉", lat: 24.025, lon: 121.614 }, { name: "吉安鄉", lat: 23.977, lon: 121.571 }, { name: "壽豐鄉", lat: 23.871, lon: 121.511 }, { name: "光復鄉", lat: 23.666, lon: 121.424 }, { name: "豐濱鄉", lat: 23.597, lon: 121.524 }, { name: "瑞穗鄉", lat: 23.498, lon: 121.378 }, { name: "富里鄉", lat: 23.179, lon: 121.249 }, { name: "秀林鄉", lat: 24.116, lon: 121.618 }, { name: "萬榮鄉", lat: 23.712, lon: 121.408 }, { name: "卓溪鄉", lat: 23.348, lon: 121.288 }],
-      "臺東縣": [{ name: "臺東市", lat: 22.755, lon: 121.150 }, { name: "成功鎮", lat: 23.100, lon: 121.372 }, { name: "關山鎮", lat: 23.047, lon: 121.162 }, { name: "卑南鄉", lat: 22.784, lon: 121.107 }, { name: "鹿野鄉", lat: 22.913, lon: 121.134 }, { name: "池上鄉", lat: 23.123, lon: 121.217 }, { name: "東河鄉", lat: 22.969, lon: 121.298 }, { name: "長濱鄉", lat: 23.315, lon: 121.452 }, { name: "太麻里鄉", lat: 22.616, lon: 121.006 }, { name: "大武鄉", lat: 22.356, lon: 120.898 }, { name: "綠島鄉", lat: 22.662, lon: 121.493 }, { name: "海端鄉", lat: 23.098, lon: 121.177 }, { name: "延平鄉", lat: 22.903, lon: 121.084 }, { name: "金峰鄉", lat: 22.595, lon: 120.970 }, { name: "達仁鄉", lat: 22.296, lon: 120.887 }, { name: "蘭嶼鄉", lat: 22.052, lon: 121.551 }],
-      "澎湖縣": [{ name: "馬公市", lat: 23.565, lon: 119.566 }, { name: "湖西鄉", lat: 23.585, lon: 119.658 }, { name: "白沙鄉", lat: 23.666, lon: 119.596 }, { name: "西嶼鄉", lat: 23.606, lon: 119.518 }, { name: "望安鄉", lat: 23.371, lon: 119.502 }, { name: "七美鄉", lat: 23.208, lon: 119.428 }],
-      "金門縣": [{ name: "金城鎮", lat: 24.416, lon: 118.316 }, { name: "金沙鎮", lat: 24.489, lon: 118.420 }, { name: "金湖鎮", lat: 24.438, lon: 118.416 }, { name: "金寧鄉", lat: 24.456, lon: 118.324 }, { name: "烈嶼鄉", lat: 24.432, lon: 118.243 }, { name: "烏坵鄉", lat: 24.991, lon: 119.451 }],
-      "連江縣": [{ name: "南竿鄉", lat: 26.155, lon: 119.943 }, { name: "北竿鄉", lat: 26.223, lon: 119.992 }, { name: "莒光鄉", lat: 25.969, lon: 119.938 }, { name: "東引鄉", lat: 26.366, lon: 120.493 }]
-    };
-
-    // --- 應用程式狀態 ---
-    let state = {
-      selectedCity: "臺南市",
-      selectedDistrict: TAIWAN_LOCATIONS["臺南市"][0],
-      apiOutdoorTemp: null,
-      apiOutdoorHumidity: null,
-      apiOutdoorDewPoint: null,
-      manualOutdoorTemp: 24,
-      manualOutdoorHumidity: 65,
-      isOutdoorManual: false,
-      loading: false,
-      error: null,
-      indoorTemp: 26,
-      indoorHumidity: 70,
-      noMoistureSource: true
-    };
-
-    // --- 工具函數 ---
-    const calculateDewPoint = (T, RH) => {
-      if (T === '' || RH === '' || T == null || RH == null || isNaN(T) || isNaN(RH)) return null;
-      const a = 17.27;
-      const b = 237.7;
-      const alpha = ((a * T) / (b + T)) + Math.log(RH / 100.0);
-      const dewPoint = (b * alpha) / (a - alpha);
-      return parseFloat(dewPoint.toFixed(1));
-    };
-
-    // --- DOM 元素綁定 ---
-    const els = {
-      btnAutoMode: document.getElementById('btn-auto-mode'),
-      btnManualMode: document.getElementById('btn-manual-mode'),
-      autoModeSection: document.getElementById('auto-mode-section'),
-      manualModeSection: document.getElementById('manual-mode-section'),
-      citySelect: document.getElementById('city-select'),
-      districtSelect: document.getElementById('district-select'),
-      refreshBtn: document.getElementById('refresh-btn'),
-      refreshIcon: document.getElementById('refresh-icon'),
-      
-      manualOutdoorTempInput: document.getElementById('manual-outdoor-temp-input'),
-      manualOutdoorTempRange: document.getElementById('manual-outdoor-temp-range'),
-      manualOutdoorHumidityInput: document.getElementById('manual-outdoor-humidity-input'),
-      manualOutdoorHumidityRange: document.getElementById('manual-outdoor-humidity-range'),
-      
-      indoorTempInput: document.getElementById('indoor-temp-input'),
-      indoorTempRange: document.getElementById('indoor-temp-range'),
-      indoorHumidityInput: document.getElementById('indoor-humidity-input'),
-      indoorHumidityRange: document.getElementById('indoor-humidity-range'),
-      indoorDewPointDisplay: document.getElementById('indoor-dew-point-display'),
-      
-      noMoistureCheckbox: document.getElementById('no-moisture-checkbox'),
-      moistureCheckboxUi: document.getElementById('moisture-checkbox-ui'),
-      moistureCheckIcon: document.getElementById('moisture-check-icon'),
-      
-      errorMessage: document.getElementById('error-message'),
-      errorText: document.getElementById('error-text'),
-      outdoorDataCards: document.getElementById('outdoor-data-cards'),
-      
-      loadingSkeleton: document.getElementById('loading-skeleton'),
-      waitingText: document.getElementById('waiting-text'),
-      analysisResults: document.getElementById('analysis-results'),
-      
-      finalRecommendation: document.getElementById('final-recommendation'),
-      recommendationTitle: document.getElementById('recommendation-title'),
-      recommendationDesc: document.getElementById('recommendation-desc'),
-      
-      dataSourceFooter: document.getElementById('data-source-footer')
-    };
-
-    // --- 初始化下拉選單 ---
-    function initSelects() {
-      els.citySelect.innerHTML = Object.keys(TAIWAN_LOCATIONS).map(city => 
-        `<option value="${city}">${city}</option>`
-      ).join('');
-      els.citySelect.value = state.selectedCity;
-      updateDistrictSelect();
-    }
-
-    function updateDistrictSelect() {
-      const districts = TAIWAN_LOCATIONS[state.selectedCity];
-      els.districtSelect.innerHTML = districts.map(d => 
-        `<option value="${d.name}">${d.name}</option>`
-      ).join('');
-      
-      // 如果目前的區不在新城市裡，重置為第一個區
-      if (!districts.find(d => d.name === state.selectedDistrict.name)) {
-        state.selectedDistrict = districts[0];
-      }
-      els.districtSelect.value = state.selectedDistrict.name;
-    }
-
-    // --- 抓取 API 資料 ---
-    async function fetchWeather() {
-      state.loading = true;
-      state.error = null;
-      render();
-
-      try {
-        const { lat, lon } = state.selectedDistrict;
-        const response = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m&timezone=Asia%2FTaipei`
         );
-        const data = await response.json();
-        
-        if (data.current) {
-          state.apiOutdoorTemp = data.current.temperature_2m;
-          state.apiOutdoorHumidity = data.current.relative_humidity_2m;
-          state.apiOutdoorDewPoint = calculateDewPoint(state.apiOutdoorTemp, state.apiOutdoorHumidity);
-        } else {
-          throw new Error("無法獲取氣象資料");
-        }
-      } catch (err) {
-        state.error = "無法連線氣象服務";
-      } finally {
-        state.loading = false;
-        render();
-      }
-    }
 
-    // --- 渲染 UI (對應 React 狀態改變) ---
-    function render() {
-      // 1. 模式切換樣式
-      if (state.isOutdoorManual) {
-        els.btnManualMode.className = "px-3 py-1 text-sm rounded-md transition-all bg-white shadow text-blue-600 font-bold";
-        els.btnAutoMode.className = "px-3 py-1 text-sm rounded-md transition-all text-slate-500 hover:text-slate-700";
-        els.manualModeSection.classList.remove('hidden');
-        els.autoModeSection.classList.add('hidden');
-        els.dataSourceFooter.textContent = "目前使用：手動輸入數據";
-      } else {
-        els.btnAutoMode.className = "px-3 py-1 text-sm rounded-md transition-all bg-white shadow text-blue-600 font-bold";
-        els.btnManualMode.className = "px-3 py-1 text-sm rounded-md transition-all text-slate-500 hover:text-slate-700";
-        els.autoModeSection.classList.remove('hidden');
-        els.manualModeSection.classList.add('hidden');
-        els.dataSourceFooter.textContent = "資料來源: Open-Meteo Weather API";
-      }
-
-      // 2. 處理 Loading 動畫
-      if (!state.isOutdoorManual && state.loading) {
-        els.refreshIcon.classList.add('animate-spin');
-      } else {
-        els.refreshIcon.classList.remove('animate-spin');
-      }
-
-      // 3. 處理錯誤顯示
-      if (!state.isOutdoorManual && state.error) {
-        els.errorMessage.classList.remove('hidden');
-        els.errorMessage.classList.add('flex');
-        els.errorText.textContent = state.error;
-      } else {
-        els.errorMessage.classList.add('hidden');
-        els.errorMessage.classList.remove('flex');
-      }
-
-      // 4. 同步 Input 值
-      els.manualOutdoorTempInput.value = state.manualOutdoorTemp !== '' ? state.manualOutdoorTemp : '';
-      els.manualOutdoorTempRange.value = state.manualOutdoorTemp !== '' ? state.manualOutdoorTemp : 24;
-      els.manualOutdoorHumidityInput.value = state.manualOutdoorHumidity !== '' ? state.manualOutdoorHumidity : '';
-      els.manualOutdoorHumidityRange.value = state.manualOutdoorHumidity !== '' ? state.manualOutdoorHumidity : 65;
-
-      els.indoorTempInput.value = state.indoorTemp !== '' ? state.indoorTemp : '';
-      els.indoorTempRange.value = state.indoorTemp !== '' ? state.indoorTemp : 26;
-      els.indoorHumidityInput.value = state.indoorHumidity !== '' ? state.indoorHumidity : '';
-      els.indoorHumidityRange.value = state.indoorHumidity !== '' ? state.indoorHumidity : 70;
-
-      // 5. 處理濕源 Checkbox UI
-      if (state.noMoistureSource) {
-        els.moistureCheckboxUi.className = "w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors bg-green-500 border-green-500";
-        els.moistureCheckIcon.classList.remove('hidden');
-      } else {
-        els.moistureCheckboxUi.className = "w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors border-slate-300";
-        els.moistureCheckIcon.classList.add('hidden');
-      }
-
-      // 6. 運算邏輯
-      const indoorDewPoint = calculateDewPoint(state.indoorTemp, state.indoorHumidity);
-      els.indoorDewPointDisplay.textContent = indoorDewPoint !== null ? `${indoorDewPoint}°C` : "--°C";
-
-      const finalOutdoorTemp = state.isOutdoorManual ? state.manualOutdoorTemp : state.apiOutdoorTemp;
-      const finalOutdoorHumidity = state.isOutdoorManual ? state.manualOutdoorHumidity : state.apiOutdoorHumidity;
-      const finalOutdoorDewPoint = state.isOutdoorManual 
-        ? calculateDewPoint(state.manualOutdoorTemp, state.manualOutdoorHumidity) 
-        : state.apiOutdoorDewPoint;
-
-      // 室外數據卡片
-      if (!state.isOutdoorManual || (state.isOutdoorManual && state.manualOutdoorTemp !== '')) {
-        els.outdoorDataCards.innerHTML = `
-          ${createDataCard("室外溫", finalOutdoorTemp, "°C", "thermometer", false, !state.isOutdoorManual && state.loading, state.isOutdoorManual)}
-          ${createDataCard("室外濕", finalOutdoorHumidity, "%", "droplets", false, !state.isOutdoorManual && state.loading, state.isOutdoorManual)}
-          ${createDataCard("室外露點", finalOutdoorDewPoint, "°C", null, true, !state.isOutdoorManual && state.loading, false)}
-        `;
-        lucide.createIcons(); // 重新渲染剛加入的 icon
-      } else {
-        els.outdoorDataCards.innerHTML = '';
-      }
-
-      // 判斷邏輯
-      const dewPointDiff = finalOutdoorDewPoint !== null && indoorDewPoint !== null ? (indoorDewPoint - finalOutdoorDewPoint).toFixed(1) : null;
-      const isDewPointSafe = dewPointDiff !== null && parseFloat(dewPointDiff) > 2.0;
-
-      const tempDiff = finalOutdoorTemp !== null && state.indoorTemp !== null && state.indoorTemp !== '' ? (finalOutdoorTemp - state.indoorTemp).toFixed(1) : null;
-      const isTempSafe = tempDiff !== null && parseFloat(tempDiff) <= 3.0;
-      const isOutdoorCooler = tempDiff !== null && parseFloat(tempDiff) < 0;
-
-      const canOpenWindow = isDewPointSafe && isTempSafe && state.noMoistureSource;
-
-      // 7. 渲染分析結果區塊
-      els.loadingSkeleton.classList.add('hidden');
-      els.waitingText.classList.add('hidden');
-      els.analysisResults.innerHTML = '';
-      els.finalRecommendation.classList.add('hidden');
-
-      if (state.loading && !state.isOutdoorManual) {
-        els.loadingSkeleton.classList.remove('hidden');
-      } else if (finalOutdoorDewPoint === null) {
-        els.waitingText.classList.remove('hidden');
-        els.waitingText.textContent = state.isOutdoorManual ? "請輸入完整室外數據" : "等待氣象資料...";
-      } else {
-        // 渲染條件項目
-        els.analysisResults.innerHTML = `
-          ${createConditionItem(
-            isDewPointSafe, 
-            "露點條件", 
-            `室內露點(${indoorDewPoint ?? '--'}) - 室外露點(${finalOutdoorDewPoint}) = ${dewPointDiff}°C`, 
-            "需 > 2°C", 
-            "正值越大表示室外越乾燥，適合排濕。", 
-            false
-          )}
-          ${createConditionItem(
-            isTempSafe, 
-            "溫度條件", 
-            `室外溫度(${finalOutdoorTemp}) - 室內溫度(${state.indoorTemp !== '' ? state.indoorTemp : '--'}) = ${tempDiff}°C`, 
-            "需 ≤ 3°C", 
-            isOutdoorCooler ? "室外較涼，有助於通風降溫！" : "室外較熱，但仍在可接受範圍。", 
-            isTempSafe && !isOutdoorCooler
-          )}
-          ${createConditionItem(
-            state.noMoistureSource, 
-            "環境條件", 
-            state.noMoistureSource ? "無強濕源" : "有強濕源", 
-            "需無濕源", 
-            "若正在產生大量水氣，開窗效果有限。", 
-            false
-          )}
-        `;
-
-        // 渲染最終建議
-        els.finalRecommendation.classList.remove('hidden');
-        els.finalRecommendation.className = `p-4 rounded-xl text-center border-2 ${canOpenWindow ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`;
-        
-        els.recommendationTitle.className = `text-2xl font-bold mb-1 ${canOpenWindow ? 'text-green-700' : 'text-red-600'}`;
-        els.recommendationTitle.textContent = canOpenWindow ? "✅ 建議開窗通風" : "❌ 不建議開窗";
-        
-        els.recommendationDesc.className = `text-sm ${canOpenWindow ? 'text-green-600' : 'text-red-500'}`;
-        
-        if (canOpenWindow) {
-          els.recommendationDesc.textContent = "目前戶外乾燥且溫度適宜，適合開窗排濕！";
-        } else if (!isDewPointSafe) {
-          els.recommendationDesc.textContent = "戶外濕氣太重，開窗可能導致反潮。";
-        } else if (!isTempSafe) {
-          els.recommendationDesc.textContent = "戶外太熱，開窗會增加室內熱負荷。";
-        } else {
-          els.recommendationDesc.textContent = "請先排除室內濕源後再考慮開窗。";
-        }
-
-        lucide.createIcons();
-      }
-    }
-
-    // --- 輔助產出 HTML 字串的函數 ---
-    function createDataCard(label, value, unit, iconName, highlight, loading, isManual) {
-      const manualBadge = isManual && !highlight ? `<div class="absolute top-0 right-0 w-2 h-2 bg-blue-500 rounded-full m-1" title="手動輸入中"></div>` : '';
-      const iconHtml = iconName ? `<i data-lucide="${iconName}" class="w-4 h-4"></i>` : '';
-      const bgClass = highlight ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-100';
-      const textClass = highlight ? 'text-blue-700' : 'text-slate-800';
-
-      let content = '';
-      if (loading) {
-        content = `<div class="h-6 w-12 bg-slate-200 rounded animate-pulse mx-auto"></div>`;
-      } else {
-        content = `<div class="font-bold ${textClass}">${value !== null && value !== '' ? value : '--'} <span class="text-xs font-normal text-slate-500">${unit}</span></div>`;
-      }
-
-      return `
-        <div class="p-3 rounded-lg text-center border relative overflow-hidden ${bgClass}">
-          ${manualBadge}
-          <div class="text-xs text-slate-500 flex justify-center items-center gap-1 mb-1">
-            ${iconHtml} ${label}
-          </div>
-          ${content}
-        </div>
-      `;
-    }
-
-    function createConditionItem(passed, title, math, standard, desc, isWarning) {
-      const iconHtml = passed 
-        ? (isWarning ? `<i data-lucide="alert-triangle" class="text-yellow-500 w-5 h-5"></i>` : `<i data-lucide="check-circle-2" class="text-green-500 w-5 h-5"></i>`)
-        : `<i data-lucide="x-circle" class="text-red-500 w-5 h-5"></i>`;
-      
-      const badgeClass = passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
-      const badgeText = passed ? "符合" : "未符合";
-
-      return `
-        <div class="flex items-start gap-3 p-3 bg-white border border-slate-100 rounded-lg shadow-sm">
-          <div class="mt-1">${iconHtml}</div>
-          <div class="flex-1">
-            <div class="flex justify-between items-center mb-1">
-              <h4 class="font-bold text-slate-700 text-sm">${title}</h4>
-              <span class="text-xs px-2 py-0.5 rounded-full ${badgeClass}">${badgeText}</span>
-            </div>
-            <div class="font-mono text-xs bg-slate-50 p-2 rounded text-slate-600 mb-1">
-              ${math} <span class="text-slate-400">(${standard})</span>
-            </div>
-            <p class="text-xs text-slate-500">${desc}</p>
-          </div>
-        </div>
-      `;
-    }
-
-    // --- 事件綁定 ---
-    els.btnAutoMode.addEventListener('click', () => {
-      state.isOutdoorManual = false;
-      fetchWeather(); // 切換回來順便更新一下
-    });
-    
-    els.btnManualMode.addEventListener('click', () => {
-      state.isOutdoorManual = true;
-      render();
-    });
-
-    els.citySelect.addEventListener('change', (e) => {
-      state.selectedCity = e.target.value;
-      updateDistrictSelect();
-      if (!state.isOutdoorManual) fetchWeather();
-    });
-
-    els.districtSelect.addEventListener('change', (e) => {
-      const districts = TAIWAN_LOCATIONS[state.selectedCity];
-      state.selectedDistrict = districts.find(d => d.name === e.target.value);
-      if (!state.isOutdoorManual) fetchWeather();
-    });
-
-    els.refreshBtn.addEventListener('click', () => {
-      if (!state.isOutdoorManual) fetchWeather();
-    });
-
-    // 通用輸入處理器綁定
-    const bindInput = (inputId, rangeId, stateKey) => {
-      const input = document.getElementById(inputId);
-      const range = document.getElementById(rangeId);
-      
-      const updateState = (val) => {
-        state[stateKey] = val === '' ? '' : parseFloat(val);
-        render();
-      };
-
-      input.addEventListener('input', (e) => updateState(e.target.value));
-      range.addEventListener('input', (e) => updateState(e.target.value));
-    };
-
-    bindInput('manual-outdoor-temp-input', 'manual-outdoor-temp-range', 'manualOutdoorTemp');
-    bindInput('manual-outdoor-humidity-input', 'manual-outdoor-humidity-range', 'manualOutdoorHumidity');
-    bindInput('indoor-temp-input', 'indoor-temp-range', 'indoorTemp');
-    bindInput('indoor-humidity-input', 'indoor-humidity-range', 'indoorHumidity');
-
-    els.noMoistureCheckbox.addEventListener('change', (e) => {
-      state.noMoistureSource = e.target.checked;
-      render();
-    });
-
-    // --- 初始化執行 ---
-    lucide.createIcons();
-    initSelects();
-    fetchWeather(); // 初次載入自動抓取天氣
-  </script>
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
 </body>
 </html>
