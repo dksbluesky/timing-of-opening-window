@@ -84,39 +84,72 @@
                 try {
                     const queryCity = city.replace('台', '臺');
                     
-                    // 1. 先查局屬站 (O-A0003-001)
-                    const resMain = await fetch(`${CWA_URL_MAIN}&Authorization=${CWA_API_KEY}`);
-                    const dataMain = await resMain.json();
-                    const stationsMain = dataMain.records.Station;
-                    
-                    let match = stationsMain.find(s => s.GeoInfo.CountyName === queryCity && s.GeoInfo.TownName === dist);
+                    const fetchStation = async (url) => {
+                        let res;
+                        try {
+                            res = await fetch(`${url}&Authorization=${CWA_API_KEY}`);
+                        } catch (err) {
+                            // 捕捉網路層級的阻擋 (例如 CORS 或沒有網路)
+                            throw new Error("網路請求被阻擋 (請確認是否直接點開本地檔案，或稍後再試)");
+                        }
+                        
+                        if (!res.ok) {
+                            if (res.status === 401) throw new Error("授權碼無效或尚未開通 (申請後請等15分鐘)");
+                            throw new Error(`伺服器異常 (狀態碼: ${res.status})`);
+                        }
+                        
+                        const data = await res.json();
+                        if (data.success !== "true" && data.success !== true) {
+                            throw new Error("API 服務回傳資料格式異常");
+                        }
+                        return data.records?.Station || [];
+                    };
+
+                    let stationsMain = await fetchStation(CWA_URL_MAIN);
+                    let match = stationsMain.find(s => s.GeoInfo && s.GeoInfo.CountyName === queryCity && s.GeoInfo.TownName === dist);
                     let type = "局屬站";
 
-                    // 2. 找不到局屬站，查自動站 (O-A0001-001)
                     if (!match) {
-                        const resAuto = await fetch(`${CWA_URL_AUTO}&Authorization=${CWA_API_KEY}`);
-                        const dataAuto = await resAuto.json();
-                        const stationsAuto = dataAuto.records.Station;
-                        match = stationsAuto.find(s => s.GeoInfo.CountyName === queryCity && s.GeoInfo.TownName === dist);
-                        if (match) type = "自動站";
+                        try {
+                            const stationsAuto = await fetchStation(CWA_URL_AUTO);
+                            match = stationsAuto.find(s => s.GeoInfo && s.GeoInfo.CountyName === queryCity && s.GeoInfo.TownName === dist);
+                            if (match) type = "自動站";
+                        } catch (err) {
+                            console.warn("自動站讀取略過", err);
+                        }
                     }
 
-                    // 3. 如果都找不到，退回該縣市的第一個局屬測站當代表
                     if (!match) {
-                        match = stationsMain.find(s => s.GeoInfo.CountyName === queryCity) || stationsMain[0];
+                        match = stationsMain.find(s => s.GeoInfo && s.GeoInfo.CountyName === queryCity) || stationsMain[0];
                         type = "局屬站 (代用)";
                     }
 
+                    if (!match || !match.WeatherElement) {
+                        throw new Error(`找不到 ${city}${dist} 的測站資料`);
+                    }
+
+                    let t = parseFloat(match.WeatherElement.AirTemperature);
+                    let h = parseFloat(match.WeatherElement.RelativeHumidity);
+                    
+                    // 氣象局儀器異常或未測量時，通常會回傳負值極端數字 (如 -99)
+                    if (isNaN(t) || t < -50) t = null;
+                    if (isNaN(h) || h < 0) h = null;
+
+                    if (t === null || h === null) {
+                        throw new Error(`測站 (${match.StationName}) 目前缺漏溫濕度實測數據`);
+                    }
+
                     setApiData({ 
-                        t: parseFloat(match.WeatherElement.AirTemperature), 
-                        h: parseFloat(match.WeatherElement.RelativeHumidity), 
+                        t: t, 
+                        h: h, 
                         station: match.StationName,
                         stationType: type,
                         loading: false,
                         error: null
                     });
                 } catch (e) { 
-                    setApiData(p => ({ ...p, loading: false, error: "API 連線失敗 (請檢查網路或 API Key 狀態)" })); 
+                    console.error("CWA API 錯誤詳細資訊:", e);
+                    setApiData(p => ({ ...p, loading: false, error: e.message })); 
                 }
             };
 
@@ -144,9 +177,8 @@
                         ] 
                     };
                 } else {
-                    // 一般物理防潮修正邏輯
-                    const dOk = outDP < inDP; // 排濕：只要外面露點比裡面低
-                    const sOk = outDP < indoor.t; // 防反潮：只要外面露點低於室內溫度，就不會結露
+                    const dOk = outDP < inDP; 
+                    const sOk = outDP < indoor.t; 
                     const can = sOk && dOk;
                     return { 
                         pass: can && noMoisture, 
@@ -168,13 +200,11 @@
                         </header>
 
                         <main className="p-6 space-y-6">
-                            {/* 邏輯切換 */}
                             <div className="flex bg-slate-100 p-1 rounded-2xl">
                                 <button onClick={()=>setAlgo('strict')} className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${algo==='strict'?'bg-white shadow text-slate-800':'text-slate-400'}`}>嚴格強效除濕</button>
                                 <button onClick={()=>setAlgo('standard')} className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${algo==='standard'?'bg-white shadow text-slate-800':'text-slate-400'}`}>一般物理防潮</button>
                             </div>
 
-                            {/* 室外環境設定 */}
                             <section className="space-y-4">
                                 <div className="flex justify-between items-center bg-blue-50/50 p-2 rounded-2xl border border-blue-100">
                                     <div className="flex items-center gap-2 pl-2">
@@ -236,7 +266,6 @@
                                 </div>
                             </section>
 
-                            {/* 室內環境設定 */}
                             <section className="space-y-4 pt-2 border-t border-slate-100">
                                 <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 pl-1"><Icon name="Thermometer" className="text-orange-500 w-4 h-4" /> 室內環境 (Indoor)</h2>
                                 <div className="bg-orange-50/50 p-4 rounded-[1.5rem] border border-orange-100 space-y-4">
@@ -268,7 +297,6 @@
                                 </label>
                             </section>
 
-                            {/* 分析結果 */}
                             {analysis && (
                                 <section className="space-y-3 pt-2 border-t border-slate-100">
                                     <div className="space-y-2">
