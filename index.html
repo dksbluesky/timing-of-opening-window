@@ -23,7 +23,9 @@
                 MapPin: <Fragment><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></Fragment>,
                 Check: <polyline points="20 6 9 17 4 12" />,
                 X: <Fragment><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></Fragment>,
-                Settings2: <Fragment><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></Fragment>
+                Settings2: <Fragment><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></Fragment>,
+                AlertTriangle: <Fragment><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></Fragment>,
+                Info: <Fragment><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></Fragment>
             };
             return (
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -33,7 +35,6 @@
         };
 
         const CWA_API_KEY = "CWA-7EB3892B-FF69-4059-ABF7-BFFECE0E0B7E";
-        // 將 http 修正為 https，解決 GitHub Pages 混合內容阻擋問題
         const CWA_URL_MAIN = "https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0003-001?format=JSON";
         const CWA_URL_AUTO = "https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0001-001?format=JSON";
 
@@ -44,16 +45,16 @@
             "台中市": ["中區", "東區", "南區", "西區", "北區", "北屯區", "西屯區", "南屯區", "太平區", "大里區", "霧峰區", "烏日區", "豐原區", "後里區", "石岡區", "東勢區", "和平區", "新社區", "潭子區", "大雅區", "神岡區", "大肚區", "沙鹿區", "龍井區", "梧棲區", "清水區", "大甲區", "外埔區", "大安區"],
             "高雄市": ["新興區", "前金區", "苓雅區", "鹽埕區", "鼓山區", "旗津區", "前鎮區", "三民區", "楠梓區", "小港區", "左營區", "仁武區", "大社區", "岡山區", "路竹區", "阿蓮區", "田寮區", "燕巢區", "橋頭區", "梓官區", "彌陀區", "永安區", "湖內區", "鳳山區", "大寮區", "林園區", "鳥松區", "大樹區", "旗山區", "美濃區", "六龜區", "內門區", "杉林區", "甲仙區", "桃源區", "那瑪夏區", "茂林區", "茄萣區"],
             "基隆市": ["仁愛區", "信義區", "中正區", "中山區", "安樂區", "暖暖區", "七堵區"],
-            "桃園市": ["桃園區", "中壢區", "大溪區", "楊梅區", "蘆竹區", "大園區", "龜山區", "八德區", "龍潭區", "平鎮區", "新屋區", "觀音區", "復興區"],
+            "桃園市": ["桃園區", "中壢區", "大溪區", "楊梅區", "蘆竹區", "大園區", "龜山區", "八德區", "龍潭區", "平鎮區", "新莊區", "新屋區", "觀音區", "復興區"],
             "新竹市": ["東區", "北區", "香山區"],
             "新竹縣": ["竹北市", "竹東鎮", "新埔鎮", "關西鎮", "湖口鄉", "新豐鄉", "芎林鄉", "橫山鄉", "北埔鄉", "寶山鄉", "峨眉鄉", "尖石鄉", "五峰鄉"],
             "苗栗縣": ["苗栗市", "頭份市", "竹南鎮", "後龍鎮", "通霄鎮", "苑裡鎮", "卓蘭鎮", "造橋鄉", "西湖鄉", "頭屋鄉", "公館鄉", "銅鑼鄉", "三義鄉", "大湖鄉", "獅潭鄉", "三灣鄉", "南庄鄉", "泰安鄉"],
-            "彰化縣": ["彰化市", "鹿港鎮", "和美鎮", "線西鄉", "伸港鄉", "福興鄉", "秀水鄉", "花壇鄉", "芬園鄉", "員林市", "溪湖鎮", "田中鎮", "大村鄉", "埔鹽鄉", "埔心鄉", "永靖鄉", "社頭鄉", "二水鄉", "北斗鎮", "二林鎮", "埤頭鄉", "芳苑鄉", "大城鄉", "竹塘鄉", "溪州鄉", "田尾鄉"],
+            "彰化縣": ["彰化市", "鹿港鎮", "和美鎮", "線西鄉", "伸港鄉", "福興鄉", "秀水鄉", "花壇鄉", "芬園鄉", "員林市", "溪湖鎮", "田中鎮", "大村鄉", "埔鹽鄉", "埔心鄉", "永靖鄉", "社頭鄉", "二水鄉", "北斗鎮", "二林鎮", "埔頭鄉", "芳苑鄉", "大城鄉", "竹塘鄉", "溪州鄉", "田尾鄉"],
             "南投縣": ["南投市", "埔里鎮", "草屯鎮", "竹山鎮", "集集鎮", "名間鄉", "鹿谷鄉", "中寮鄉", "魚池鄉", "國姓鄉", "水里鄉", "信義鄉", "仁愛鄉"],
             "雲林縣": ["斗六市", "斗南鎮", "虎尾鎮", "西螺鎮", "土庫鎮", "北港鎮", "古坑鄉", "大埤鄉", "莿桐鄉", "林內鄉", "二崙鄉", "崙背鄉", "麥寮鄉", "東勢鄉", "褒忠鄉", "台西鄉", "元長鄉", "四湖鄉", "口湖鄉", "水林鄉"],
             "嘉義市": ["東區", "西區"],
             "嘉義縣": ["太保市", "朴子市", "布袋鎮", "大林鎮", "民雄鄉", "溪口鄉", "新港鄉", "六腳鄉", "東石鄉", "義竹鄉", "鹿草鄉", "水上鄉", "中埔鄉", "竹崎鄉", "梅山鄉", "番路鄉", "大埔鄉", "阿里山鄉"],
-            "屏東縣": ["屏東市", "三地門鄉", "霧台鄉", "瑪家鄉", "九如鄉", "里港鄉", "高樹鄉", "鹽埔鄉", "長治鄉", "麟洛鄉", "竹田鄉", "內埔鄉", "萬丹鄉", "潮州鎮", "泰武鄉", "來義鄉", "萬巒鄉", "嵌頂鄉", "新埤鄉", "南州鄉", "林邊鄉", "東港鎮", "琉球鄉", "佳冬鄉", "新園鄉", "枋寮鄉", "枋山鄉", "春日鄉", "獅子鄉", "車城鄉", "牡丹鄉", "恆春鎮", "滿州鄉"],
+            "屏東縣": ["屏東市", "三地門鄉", "霧台鄉", "瑪家鄉", "九如鄉", "里港鄉", "高樹鄉", "鹽埕鄉", "長治鄉", "麟洛鄉", "竹田鄉", "內埔鄉", "萬丹鄉", "潮州鎮", "泰武鄉", "來義鄉", "萬巒鄉", "嵌頂鄉", "新埤鄉", "南州鄉", "林邊鄉", "東港鎮", "琉球鄉", "佳冬鄉", "新園鄉", "枋寮鄉", "枋山鄉", "春日鄉", "獅子鄉", "車城鄉", "牡丹鄉", "恆春鎮", "滿州鄉"],
             "宜蘭縣": ["宜蘭市", "羅東鎮", "蘇澳鎮", "頭城鎮", "礁溪鄉", "壯圍鄉", "員山鄉", "冬山鄉", "五結鄉", "三星鄉", "大同鄉", "南澳鄉"],
             "花蓮縣": ["花蓮市", "鳳林鎮", "玉里鎮", "新城鄉", "吉安鄉", "壽豐鄉", "光復鄉", "豐濱鄉", "瑞穗鄉", "富里鄉", "秀林鄉", "萬榮鄉", "卓溪鄉"],
             "台東縣": ["台東市", "成功鎮", "關山鎮", "卑南鄉", "鹿野鄉", "池上鄉", "東河鄉", "長濱鄉", "太麻里鄉", "大武鄉", "綠島鄉", "海端鄉", "延平鄉", "金峰鄉", "達仁鄉", "蘭嶼鄉"],
@@ -70,85 +71,50 @@
             return parseFloat(((b * alpha) / (a - alpha)).toFixed(1));
         };
 
-        function App() {
-            const [algo, setAlgo] = useState('strict');
+        // ─── Shared outdoor data hook ───────────────────────────────────────────
+        function useOutdoor() {
             const [city, setCity] = useState("台南市");
             const [dist, setDist] = useState("中西區");
             const [isManual, setIsManual] = useState(false);
-            const [indoor, setIndoor] = useState({ t: '26', h: '70' });
-            const [apiData, setApiData] = useState({ t: null, h: null, station: "", stationType: "", loading: false, error: null });
             const [manualOut, setManualOut] = useState({ t: '24', h: '65' });
-            const [noMoisture, setNoMoisture] = useState(true);
+            const [apiData, setApiData] = useState({ t: null, h: null, station: "", stationType: "", loading: false, error: null });
 
             const fetchCWA = async () => {
                 setApiData(p => ({ ...p, loading: true, error: null }));
                 try {
                     const queryCity = city.replace('台', '臺');
-                    
                     const fetchStation = async (url) => {
                         let res;
-                        try {
-                            res = await fetch(`${url}&Authorization=${CWA_API_KEY}`);
-                        } catch (err) {
-                            throw new Error("網路請求被阻擋 (請確認是否直接點開本地檔案，或稍後再試)");
-                        }
-                        
+                        try { res = await fetch(`${url}&Authorization=${CWA_API_KEY}`); }
+                        catch (err) { throw new Error("網路請求被阻擋 (請確認是否直接點開本地檔案，或稍後再試)"); }
                         if (!res.ok) {
                             if (res.status === 401) throw new Error("授權碼無效或尚未開通 (申請後請等15分鐘)");
                             throw new Error(`伺服器異常 (狀態碼: ${res.status})`);
                         }
-                        
                         const data = await res.json();
-                        if (data.success !== "true" && data.success !== true) {
-                            throw new Error("API 服務回傳資料格式異常");
-                        }
+                        if (data.success !== "true" && data.success !== true) throw new Error("API 服務回傳資料格式異常");
                         return data.records?.Station || [];
                     };
-
                     let stationsMain = await fetchStation(CWA_URL_MAIN);
                     let match = stationsMain.find(s => s.GeoInfo && s.GeoInfo.CountyName === queryCity && s.GeoInfo.TownName === dist);
                     let type = "局屬站";
-
                     if (!match) {
                         try {
                             const stationsAuto = await fetchStation(CWA_URL_AUTO);
                             match = stationsAuto.find(s => s.GeoInfo && s.GeoInfo.CountyName === queryCity && s.GeoInfo.TownName === dist);
                             if (match) type = "自動站";
-                        } catch (err) {
-                            console.warn("自動站讀取略過", err);
-                        }
+                        } catch (err) { console.warn("自動站讀取略過", err); }
                     }
-
-                    if (!match) {
-                        match = stationsMain.find(s => s.GeoInfo && s.GeoInfo.CountyName === queryCity) || stationsMain[0];
-                        type = "局屬站 (代用)";
-                    }
-
-                    if (!match || !match.WeatherElement) {
-                        throw new Error(`找不到 ${city}${dist} 的測站資料`);
-                    }
-
+                    if (!match) { match = stationsMain.find(s => s.GeoInfo && s.GeoInfo.CountyName === queryCity) || stationsMain[0]; type = "局屬站 (代用)"; }
+                    if (!match || !match.WeatherElement) throw new Error(`找不到 ${city}${dist} 的測站資料`);
                     let t = parseFloat(match.WeatherElement.AirTemperature);
                     let h = parseFloat(match.WeatherElement.RelativeHumidity);
-                    
                     if (isNaN(t) || t < -50) t = null;
                     if (isNaN(h) || h < 0) h = null;
-
-                    if (t === null || h === null) {
-                        throw new Error(`測站 (${match.StationName}) 目前缺漏溫濕度實測數據`);
-                    }
-
-                    setApiData({ 
-                        t: t, 
-                        h: h, 
-                        station: match.StationName,
-                        stationType: type,
-                        loading: false,
-                        error: null
-                    });
-                } catch (e) { 
-                    console.error("CWA API 錯誤詳細資訊:", e);
-                    setApiData(p => ({ ...p, loading: false, error: e.message })); 
+                    if (t === null || h === null) throw new Error(`測站 (${match.StationName}) 目前缺漏溫濕度實測數據`);
+                    setApiData({ t, h, station: match.StationName, stationType: type, loading: false, error: null });
+                } catch (e) {
+                    setApiData(p => ({ ...p, loading: false, error: e.message }));
                 }
             };
 
@@ -156,6 +122,81 @@
 
             const outT = isManual ? parseFloat(manualOut.t) : apiData.t;
             const outH = isManual ? parseFloat(manualOut.h) : apiData.h;
+
+            return { city, setCity, dist, setDist, isManual, setIsManual, manualOut, setManualOut, apiData, fetchCWA, outT, outH };
+        }
+
+        // ─── Shared outdoor panel ───────────────────────────────────────────────
+        function OutdoorPanel({ outdoor }) {
+            const { city, setCity, dist, setDist, isManual, setIsManual, manualOut, setManualOut, apiData, outT, outH } = outdoor;
+            const outDP = useMemo(() => calculateDP(outT, outH), [outT, outH]);
+
+            return (
+                <section className="space-y-4">
+                    <div className="flex justify-between items-center bg-blue-50/50 p-2 rounded-2xl border border-blue-100">
+                        <div className="flex items-center gap-2 pl-2">
+                            <Icon name="MapPin" className="text-blue-500" />
+                            <span className="font-bold text-sm text-slate-700">室外環境</span>
+                        </div>
+                        <div className="flex bg-slate-200 rounded-xl p-1">
+                            <button onClick={() => setIsManual(false)} className={`px-4 py-1.5 text-xs rounded-lg transition-all ${!isManual ? 'bg-white shadow font-bold text-blue-600' : 'text-slate-500'}`}>API</button>
+                            <button onClick={() => setIsManual(true)} className={`px-4 py-1.5 text-xs rounded-lg transition-all ${isManual ? 'bg-white shadow font-bold text-blue-600' : 'text-slate-500'}`}>手動</button>
+                        </div>
+                    </div>
+
+                    {!isManual ? (
+                        <div className="space-y-3">
+                            <div className="grid grid-cols-2 gap-2">
+                                <select value={city} onChange={e => { setCity(e.target.value); setDist(TAIWAN_DATA[e.target.value][0]); }} className="p-3 border rounded-xl font-bold bg-slate-50 outline-none focus:ring-2 focus:ring-blue-300">
+                                    {Object.keys(TAIWAN_DATA).map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                                <select value={dist} onChange={e => setDist(e.target.value)} className="p-3 border rounded-xl font-bold bg-slate-50 outline-none focus:ring-2 focus:ring-blue-300">
+                                    {TAIWAN_DATA[city]?.map(d => <option key={d} value={d}>{d}</option>)}
+                                </select>
+                            </div>
+                            {!apiData.loading && !apiData.error && apiData.station && (
+                                <div className="flex justify-center items-center gap-2 text-xs font-bold text-slate-500">
+                                    測站: {apiData.station}
+                                    <span className={`px-2 py-0.5 rounded-full text-[10px] ${apiData.stationType === '局屬站' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>{apiData.stationType}</span>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="bg-blue-50 p-4 rounded-[1.5rem] border border-blue-100 space-y-4">
+                            <div className="flex items-center gap-1 text-xs text-blue-500 mb-2 font-bold justify-center">
+                                <Icon name="Settings2" className="w-4 h-4" /> 手動輸入參考數值
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="bg-white p-2 rounded-xl border border-blue-100 text-center shadow-sm">
+                                    <div className="text-[9px] font-black text-blue-400 uppercase mb-1">溫度 °C</div>
+                                    <input type="number" step="0.1" value={manualOut.t} onFocus={e => e.target.select()} onChange={e => setManualOut({ ...manualOut, t: e.target.value })} className="w-full text-center text-lg font-black bg-transparent outline-none text-slate-700" />
+                                    <input type="range" min="0" max="40" step="0.1" value={parseFloat(manualOut.t) || 24} onChange={e => setManualOut({ ...manualOut, t: e.target.value })} className="w-full h-1 mt-2 bg-blue-100 rounded-lg appearance-none cursor-pointer accent-blue-500" />
+                                </div>
+                                <div className="bg-white p-2 rounded-xl border border-blue-100 text-center shadow-sm">
+                                    <div className="text-[9px] font-black text-blue-400 uppercase mb-1">濕度 %</div>
+                                    <input type="number" step="1" value={manualOut.h} onFocus={e => e.target.select()} onChange={e => setManualOut({ ...manualOut, h: e.target.value })} className="w-full text-center text-lg font-black bg-transparent outline-none text-slate-700" />
+                                    <input type="range" min="20" max="100" step="1" value={parseFloat(manualOut.h) || 65} onChange={e => setManualOut({ ...manualOut, h: e.target.value })} className="w-full h-1 mt-2 bg-blue-100 rounded-lg appearance-none cursor-pointer accent-blue-500" />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {apiData.error && !isManual && <div className="text-xs text-red-500 font-bold bg-red-50 p-3 rounded-xl border border-red-100 text-center">{apiData.error}</div>}
+
+                    <div className="grid grid-cols-3 gap-2">
+                        <DataCard label="溫度" value={outT} unit="°" icon="Thermometer" loading={!isManual && apiData.loading} />
+                        <DataCard label="濕度" value={outH} unit="%" icon="Droplets" loading={!isManual && apiData.loading} />
+                        <DataCard label="室外露點" value={outDP} unit="°" icon="Wind" highlight loading={!isManual && apiData.loading} />
+                    </div>
+                </section>
+            );
+        }
+
+        // ─── Tab 1 & 2: Original logic ──────────────────────────────────────────
+        function OriginalTab({ algo, outdoor }) {
+            const [indoor, setIndoor] = useState({ t: '26', h: '70' });
+            const [noMoisture, setNoMoisture] = useState(true);
+            const { outT, outH } = outdoor;
             const outDP = useMemo(() => calculateDP(outT, outH), [outT, outH]);
             const inDP = useMemo(() => calculateDP(indoor.t, indoor.h), [indoor.t, indoor.h]);
 
@@ -163,161 +204,349 @@
                 if (inDP === null || outDP === null || isNaN(parseFloat(indoor.t))) return null;
                 const dDiff = (inDP - outDP).toFixed(1);
                 const tDiff = (outT - parseFloat(indoor.t)).toFixed(1);
-
                 if (algo === 'strict') {
                     const dOk = dDiff >= 2.0, tOk = tDiff <= 3.0;
-                    return { 
-                        pass: dOk && tOk && noMoisture, 
-                        color: dOk && tOk ? 'bg-emerald-600' : 'bg-slate-700', 
-                        title: dOk && tOk ? '建議開窗' : '建議關窗', 
+                    return {
+                        pass: dOk && tOk && noMoisture,
+                        title: dOk && tOk ? '建議開窗' : '建議關窗',
                         items: [
-                            { label: '露點差 (≥2.0)', val: dDiff, pass: dOk }, 
+                            { label: '露點差 (≥2.0)', val: dDiff, pass: dOk },
                             { label: '溫差 (≤3.0)', val: tDiff, pass: tOk }
-                        ] 
+                        ]
                     };
                 } else {
-                    const dOk = outDP < inDP; 
+                    const dOk = outDP < inDP;
                     const sOk = outDP < parseFloat(indoor.t);
                     const can = sOk && dOk;
-                    return { 
-                        pass: can && noMoisture, 
-                        color: !sOk ? 'bg-red-600' : (can ? 'bg-blue-600' : 'bg-orange-500'), 
+                    return {
+                        pass: can && noMoisture,
                         title: !sOk ? '反潮警報' : (can ? '建議開窗' : '建議關窗'),
+                        isAlarm: !sOk,
                         items: [
-                            { label: '防反潮 (外露點<室內溫)', val: `${outDP}° < ${indoor.t}°`, pass: sOk }, 
+                            { label: '防反潮 (外露點<室內溫)', val: `${outDP}° < ${indoor.t}°`, pass: sOk },
                             { label: '排濕 (外露點<內露點)', val: `${outDP}° < ${inDP}°`, pass: dOk }
-                        ] 
+                        ]
                     };
                 }
             }, [inDP, outDP, outT, indoor.t, algo, noMoisture]);
 
             return (
+                <div className="space-y-6">
+                    <OutdoorPanel outdoor={outdoor} />
+                    <section className="space-y-4 pt-2 border-t border-slate-100">
+                        <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 pl-1">
+                            <Icon name="Thermometer" className="text-orange-500 w-4 h-4" /> 室內環境
+                        </h2>
+                        <div className="bg-orange-50/50 p-4 rounded-[1.5rem] border border-orange-100 space-y-4">
+                            <div className="grid grid-cols-3 gap-2">
+                                <div className="bg-white p-2 rounded-xl border border-orange-100 text-center shadow-sm">
+                                    <div className="text-[9px] font-black text-orange-400 uppercase mb-1">溫度 °C</div>
+                                    <input type="number" step="0.1" value={indoor.t} onFocus={e => e.target.select()} onChange={e => setIndoor({ ...indoor, t: e.target.value })} className="w-full text-center text-lg font-black bg-transparent outline-none text-slate-700" />
+                                </div>
+                                <div className="bg-white p-2 rounded-xl border border-orange-100 text-center shadow-sm">
+                                    <div className="text-[9px] font-black text-orange-400 uppercase mb-1">濕度 %</div>
+                                    <input type="number" step="1" value={indoor.h} onFocus={e => e.target.select()} onChange={e => setIndoor({ ...indoor, h: e.target.value })} className="w-full text-center text-lg font-black bg-transparent outline-none text-slate-700" />
+                                </div>
+                                <div className="bg-indigo-600 p-2 rounded-xl text-center shadow-lg shadow-indigo-200 flex flex-col justify-center">
+                                    <div className="text-[9px] font-black text-indigo-200 uppercase mb-1">室內露點</div>
+                                    <div className="text-lg font-black text-white">{inDP ?? '--'}°</div>
+                                </div>
+                            </div>
+                            <div className="px-1 space-y-4">
+                                <input type="range" min="15" max="35" step="0.1" value={parseFloat(indoor.t) || 26} onChange={e => setIndoor({ ...indoor, t: e.target.value })} className="w-full h-1.5 bg-orange-200 rounded-lg appearance-none cursor-pointer accent-orange-500" />
+                                <input type="range" min="30" max="95" step="1" value={parseFloat(indoor.h) || 70} onChange={e => setIndoor({ ...indoor, h: e.target.value })} className="w-full h-1.5 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-500" />
+                            </div>
+                        </div>
+                        <label className="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-2xl cursor-pointer hover:bg-slate-50 transition-all shadow-sm">
+                            <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${noMoisture ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300'}`}>
+                                {noMoisture && <Icon name="Check" className="text-white w-4 h-4" />}
+                            </div>
+                            <input type="checkbox" checked={noMoisture} onChange={() => setNoMoisture(!noMoisture)} className="hidden" />
+                            <span className="text-xs font-black text-slate-600 uppercase tracking-tighter">無強濕源 (無曬衣、烹飪)</span>
+                        </label>
+                    </section>
+
+                    {analysis && (
+                        <section className="space-y-3 pt-2 border-t border-slate-100">
+                            <div className="space-y-2">
+                                {analysis.items.map((item, i) => (
+                                    <div key={i} className={`flex items-center gap-4 p-3 bg-white border rounded-2xl shadow-sm ${item.pass ? 'border-emerald-100' : 'border-red-100'}`}>
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${item.pass ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}><Icon name={item.pass ? "Check" : "X"} className="w-5 h-5" /></div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex justify-between items-center mb-0.5"><h4 className="font-black text-xs text-slate-700">{item.label}</h4><span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${item.pass ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>{item.pass ? "符合" : "不合"}</span></div>
+                                            <div className="font-mono text-[10px] text-slate-500 truncate mt-1">{item.val}</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className={`p-6 rounded-[2.5rem] text-center border-4 transition-all duration-500 ${analysis.pass ? 'bg-emerald-50 border-emerald-500/20 shadow-xl' : (analysis.isAlarm ? 'bg-red-50 border-red-500/20 shadow-xl' : 'bg-slate-50 border-slate-200 shadow-xl')}`}>
+                                <h3 className={`text-3xl font-black mb-2 ${analysis.pass ? 'text-emerald-700' : (analysis.isAlarm ? 'text-red-600' : 'text-slate-600')}`}>
+                                    {analysis.pass ? "✅ 建議開窗" : (analysis.isAlarm ? "🚨 反潮警報" : "❌ 建議關窗")}
+                                </h3>
+                                <p className="text-[11px] font-bold opacity-60 uppercase tracking-widest">{analysis.title}</p>
+                            </div>
+                        </section>
+                    )}
+                </div>
+            );
+        }
+
+        // ─── Tab 3: dk framework ────────────────────────────────────────────────
+        function DkTab({ outdoor }) {
+            const { outT, outH } = outdoor;
+            const [indoor, setIndoor] = useState({ t: '26', h: '70' });
+            const [isRaining, setIsRaining] = useState(false);
+
+            const outDP = useMemo(() => calculateDP(outT, outH), [outT, outH]);
+            const inDP  = useMemo(() => calculateDP(indoor.t, indoor.h), [indoor.t, indoor.h]);
+
+            /*
+             * dk判斷邏輯：
+             *
+             * 硬限制（反潮）：室外露點 ≥ 室內溫度 → 強制關窗，無論其他條件
+             *
+             * 通過硬限制後：
+             *   室外露點相對於室內露點的位置決定灰色地帶：
+             *     室外露點 < 室內露點          → 排濕有效，可開窗
+             *     室外露點 介於 室內露點~室內溫度 → 排濕微弱，謹慎（灰色地帶）
+             *     室外露點 ≥ 室內露點          → 不可能（已被硬限制過濾）
+             *
+             * 下雨旗標：
+             *   下雨 → 額外顯示「引入濕氣」警示，但不強制關窗
+             *   讓使用者自行決定是否接受「涼但濕」的代價
+             */
+            const analysis = useMemo(() => {
+                if (outDP === null || inDP === null || isNaN(parseFloat(indoor.t))) return null;
+                const inT = parseFloat(indoor.t);
+
+                // 硬限制：反潮
+                if (outDP >= inT) {
+                    return {
+                        verdict: 'alarm',
+                        emoji: '🚨',
+                        title: '反潮警報，強制關窗',
+                        color: 'red',
+                        detail: `室外露點 ${outDP}° ≥ 室內溫度 ${inT}°，開窗會導致冷面結露`,
+                        items: [
+                            { label: '反潮防護 (外露點 < 室內溫度)', pass: false, val: `${outDP}° vs ${inT}°` },
+                            { label: '排濕有效 (外露點 < 室內露點)', pass: outDP < inDP, val: `${outDP}° vs ${inDP}°` },
+                        ],
+                        rainingNote: null
+                    };
+                }
+
+                // 排濕判斷
+                const canDehumidify = outDP < inDP;
+
+                // 灰色地帶：外露點介於室內露點與室內溫度之間
+                const isGrey = !canDehumidify && outDP < inT;  // 不可能在此出現，但保留邏輯
+                // 實際灰色地帶：外露點 < 室內溫度（已通過硬限制），但 外露點 ≥ 室內露點
+                const isGreyZone = outDP >= inDP && outDP < inT;
+
+                let verdict, emoji, title, color, detail;
+
+                if (isGreyZone) {
+                    verdict = 'grey';
+                    emoji = '⚠️';
+                    title = '效果有限，謹慎開窗';
+                    color = 'amber';
+                    detail = `外露點(${outDP}°)介於室內露點(${inDP}°)與室內溫度(${inT}°)之間，開窗不會反潮但排濕效果微弱`;
+                } else if (canDehumidify) {
+                    verdict = 'open';
+                    emoji = '✅';
+                    title = '建議開窗，排濕有效';
+                    color = 'emerald';
+                    detail = `外露點(${outDP}°) < 室內露點(${inDP}°)，開窗可有效排出室內濕氣`;
+                }
+
+                const rainingNote = isRaining
+                    ? `下雨中：室外露點偏高，開窗會引入濕氣，但若室外較涼(${outT}° vs ${inT}°室內)，可接受以排熱為優先，事後以除濕模式補救`
+                    : null;
+
+                return {
+                    verdict, emoji, title, color, detail,
+                    items: [
+                        { label: '反潮防護 (外露點 < 室內溫度)', pass: true,        val: `${outDP}° < ${inT}° ✓` },
+                        { label: '排濕有效 (外露點 < 室內露點)', pass: canDehumidify, val: `${outDP}° vs ${inDP}°` },
+                    ],
+                    rainingNote
+                };
+            }, [outDP, inDP, indoor.t, outT, isRaining]);
+
+            const colorMap = {
+                emerald: { bg: 'bg-emerald-50', border: 'border-emerald-500/20', text: 'text-emerald-700' },
+                amber:   { bg: 'bg-amber-50',   border: 'border-amber-400/30',   text: 'text-amber-700'   },
+                red:     { bg: 'bg-red-50',      border: 'border-red-500/20',     text: 'text-red-600'     },
+            };
+
+            return (
+                <div className="space-y-6">
+                    <OutdoorPanel outdoor={outdoor} />
+
+                    <section className="space-y-4 pt-2 border-t border-slate-100">
+                        <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 pl-1">
+                            <Icon name="Thermometer" className="text-orange-500 w-4 h-4" /> 室內環境（最濕房間）
+                        </h2>
+                        <p className="text-[10px] text-slate-400 font-bold px-1 -mt-2">建議以全屋最潮濕的房間數值為準（北向或浴室旁臥室）</p>
+
+                        <div className="bg-orange-50/50 p-4 rounded-[1.5rem] border border-orange-100 space-y-4">
+                            <div className="grid grid-cols-3 gap-2">
+                                <div className="bg-white p-2 rounded-xl border border-orange-100 text-center shadow-sm">
+                                    <div className="text-[9px] font-black text-orange-400 uppercase mb-1">溫度 °C</div>
+                                    <input type="number" step="0.1" value={indoor.t} onFocus={e => e.target.select()} onChange={e => setIndoor({ ...indoor, t: e.target.value })} className="w-full text-center text-lg font-black bg-transparent outline-none text-slate-700" />
+                                    <input type="range" min="15" max="35" step="0.1" value={parseFloat(indoor.t) || 26} onChange={e => setIndoor({ ...indoor, t: e.target.value })} className="w-full h-1 mt-2 bg-orange-100 rounded-lg appearance-none cursor-pointer accent-orange-500" />
+                                </div>
+                                <div className="bg-white p-2 rounded-xl border border-orange-100 text-center shadow-sm">
+                                    <div className="text-[9px] font-black text-orange-400 uppercase mb-1">濕度 %</div>
+                                    <input type="number" step="1" value={indoor.h} onFocus={e => e.target.select()} onChange={e => setIndoor({ ...indoor, h: e.target.value })} className="w-full text-center text-lg font-black bg-transparent outline-none text-slate-700" />
+                                    <input type="range" min="30" max="95" step="1" value={parseFloat(indoor.h) || 70} onChange={e => setIndoor({ ...indoor, h: e.target.value })} className="w-full h-1 mt-2 bg-blue-100 rounded-lg appearance-none cursor-pointer accent-blue-500" />
+                                </div>
+                                <div className="bg-indigo-600 p-2 rounded-xl text-center shadow-lg shadow-indigo-200 flex flex-col justify-center">
+                                    <div className="text-[9px] font-black text-indigo-200 uppercase mb-1">室內露點</div>
+                                    <div className="text-lg font-black text-white">{inDP ?? '--'}°</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 下雨旗標 */}
+                        <label className="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-2xl cursor-pointer hover:bg-slate-50 transition-all shadow-sm">
+                            <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${isRaining ? 'bg-blue-500 border-blue-500' : 'border-slate-300'}`}>
+                                {isRaining && <Icon name="Check" className="text-white w-4 h-4" />}
+                            </div>
+                            <input type="checkbox" checked={isRaining} onChange={() => setIsRaining(!isRaining)} className="hidden" />
+                            <span className="text-xs font-black text-slate-600">🌧️ 目前正在下雨</span>
+                        </label>
+                    </section>
+
+                    {/* 露點尺 */}
+                    {analysis && outDP !== null && inDP !== null && (
+                        <section className="pt-2 border-t border-slate-100 space-y-3">
+                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">露點位置一覽</h3>
+                            <DPScale outDP={outDP} inDP={inDP} inT={parseFloat(indoor.t)} />
+                        </section>
+                    )}
+
+                    {/* 判斷結果 */}
+                    {analysis && (
+                        <section className="space-y-3 pt-2 border-t border-slate-100">
+                            <div className="space-y-2">
+                                {analysis.items.map((item, i) => (
+                                    <div key={i} className={`flex items-center gap-4 p-3 bg-white border rounded-2xl shadow-sm ${item.pass ? 'border-emerald-100' : 'border-red-100'}`}>
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${item.pass ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+                                            <Icon name={item.pass ? "Check" : "X"} className="w-5 h-5" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex justify-between items-center mb-0.5">
+                                                <h4 className="font-black text-xs text-slate-700">{item.label}</h4>
+                                                <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${item.pass ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>{item.pass ? "符合" : "不合"}</span>
+                                            </div>
+                                            <div className="font-mono text-[10px] text-slate-500 truncate mt-1">{item.val}</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* 主判斷卡 */}
+                            {(() => {
+                                const c = colorMap[analysis.color] || colorMap.emerald;
+                                return (
+                                    <div className={`p-6 rounded-[2.5rem] text-center border-4 transition-all duration-500 ${c.bg} ${c.border} shadow-xl`}>
+                                        <h3 className={`text-3xl font-black mb-2 ${c.text}`}>{analysis.emoji} {analysis.title}</h3>
+                                        <p className="text-[11px] font-bold text-slate-500 mt-1 px-2">{analysis.detail}</p>
+                                    </div>
+                                );
+                            })()}
+
+                            {/* 下雨補充說明 */}
+                            {analysis.rainingNote && (
+                                <div className="flex gap-3 p-4 bg-blue-50 border border-blue-100 rounded-2xl">
+                                    <Icon name="Info" className="text-blue-400 w-5 h-5 shrink-0 mt-0.5" />
+                                    <p className="text-xs font-bold text-blue-700 leading-relaxed">{analysis.rainingNote}</p>
+                                </div>
+                            )}
+                        </section>
+                    )}
+                </div>
+            );
+        }
+
+        // ─── Dew Point Scale visual ─────────────────────────────────────────────
+        function DPScale({ outDP, inDP, inT }) {
+            // 顯示範圍：取三個值的 min-3 到 max+3
+            const vals = [outDP, inDP, inT].filter(v => !isNaN(v));
+            const minV = Math.min(...vals) - 3;
+            const maxV = Math.max(...vals) + 3;
+            const range = maxV - minV || 1;
+            const pct = v => ((v - minV) / range * 100).toFixed(1) + '%';
+
+            const markers = [
+                { val: outDP, label: `外露點 ${outDP}°`, color: '#10b981', top: false },
+                { val: inDP,  label: `內露點 ${inDP}°`,  color: '#6366f1', top: true  },
+                { val: inT,   label: `室內溫 ${inT}°`,   color: '#f97316', top: false },
+            ];
+
+            return (
+                <div className="relative h-20 mx-2">
+                    {/* track */}
+                    <div className="absolute top-1/2 left-0 right-0 h-2 -translate-y-1/2 rounded-full overflow-hidden">
+                        <div className="h-full w-full bg-gradient-to-r from-blue-200 via-emerald-200 to-orange-200" />
+                    </div>
+                    {markers.map((m, i) => (
+                        <div key={i} style={{ left: pct(m.val) }} className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2">
+                            <div className="w-4 h-4 rounded-full border-2 border-white shadow-md" style={{ backgroundColor: m.color }} />
+                            <div className={`absolute whitespace-nowrap text-[9px] font-black ${m.top ? 'bottom-5' : 'top-5'}`} style={{ color: m.color, left: '50%', transform: 'translateX(-50%)' }}>
+                                {m.label}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            );
+        }
+
+        // ─── DataCard ───────────────────────────────────────────────────────────
+        const DataCard = ({ label, value, unit, icon, highlight, loading }) => (
+            <div className={`p-3 rounded-2xl text-center border transition-all ${highlight ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg shadow-emerald-100' : 'bg-white border-slate-100 shadow-sm'}`}>
+                <div className={`text-[9px] font-black flex justify-center items-center gap-1 mb-1 ${highlight ? 'text-emerald-100' : 'text-slate-400 uppercase'}`}><Icon name={icon} className="w-3 h-3" /> {label}</div>
+                {loading ? <div className="h-6 w-12 bg-slate-100 rounded animate-pulse mx-auto"></div> : <div className="text-lg font-black">{value ?? '--'}<span className="text-[10px] ml-0.5 font-normal">{unit}</span></div>}
+            </div>
+        );
+
+        // ─── App root ───────────────────────────────────────────────────────────
+        function App() {
+            const [tab, setTab] = useState('strict');
+            const outdoor = useOutdoor();
+
+            const tabs = [
+                { id: 'strict',   label: '嚴格除濕' },
+                { id: 'standard', label: '物理防潮' },
+                { id: 'dk',       label: '露點框架' },
+            ];
+
+            return (
                 <div className="min-h-screen bg-slate-100 p-4 md:p-8 flex items-center justify-center">
                     <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200">
                         <header className="bg-slate-900 p-6 text-white text-center">
-                            <h1 className="text-2xl font-black flex items-center justify-center gap-2"><Icon name="Wind" className="text-emerald-400 w-7 h-7" /> 開窗判斷助手</h1>
+                            <h1 className="text-2xl font-black flex items-center justify-center gap-2">
+                                <Icon name="Wind" className="text-emerald-400 w-7 h-7" /> 開窗判斷助手
+                            </h1>
                         </header>
 
+                        {/* Tab bar */}
+                        <div className="flex bg-slate-100 p-1 mx-4 mt-4 rounded-2xl">
+                            {tabs.map(t => (
+                                <button key={t.id} onClick={() => setTab(t.id)}
+                                    className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${tab === t.id ? 'bg-white shadow text-slate-800' : 'text-slate-400'}`}>
+                                    {t.label}
+                                </button>
+                            ))}
+                        </div>
+
                         <main className="p-6 space-y-6">
-                            <div className="flex bg-slate-100 p-1 rounded-2xl">
-                                <button onClick={()=>setAlgo('strict')} className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${algo==='strict'?'bg-white shadow text-slate-800':'text-slate-400'}`}>嚴格強效除濕</button>
-                                <button onClick={()=>setAlgo('standard')} className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${algo==='standard'?'bg-white shadow text-slate-800':'text-slate-400'}`}>一般物理防潮</button>
-                            </div>
-
-                            <section className="space-y-4">
-                                <div className="flex justify-between items-center bg-blue-50/50 p-2 rounded-2xl border border-blue-100">
-                                    <div className="flex items-center gap-2 pl-2">
-                                        <Icon name="MapPin" className="text-blue-500" />
-                                        <span className="font-bold text-sm text-slate-700">室外環境</span>
-                                    </div>
-                                    <div className="flex bg-slate-200 rounded-xl p-1">
-                                        <button onClick={()=>setIsManual(false)} className={`px-4 py-1.5 text-xs rounded-lg transition-all ${!isManual?'bg-white shadow font-bold text-blue-600':'text-slate-500'}`}>API</button>
-                                        <button onClick={()=>setIsManual(true)} className={`px-4 py-1.5 text-xs rounded-lg transition-all ${isManual?'bg-white shadow font-bold text-blue-600':'text-slate-500'}`}>手動</button>
-                                    </div>
-                                </div>
-
-                                {!isManual ? (
-                                    <div className="space-y-3">
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <select value={city} onChange={e=>{setCity(e.target.value); setDist(TAIWAN_DATA[e.target.value][0])}} className="p-3 border rounded-xl font-bold bg-slate-50 outline-none focus:ring-2 focus:ring-blue-300">
-                                                {Object.keys(TAIWAN_DATA).map(c=><option key={c} value={c}>{c}</option>)}
-                                            </select>
-                                            <select value={dist} onChange={e=>setDist(e.target.value)} className="p-3 border rounded-xl font-bold bg-slate-50 outline-none focus:ring-2 focus:ring-blue-300">
-                                                {TAIWAN_DATA[city]?.map(d=><option key={d} value={d}>{d}</option>)}
-                                            </select>
-                                        </div>
-                                        
-                                        {!apiData.loading && !apiData.error && apiData.station && (
-                                            <div className="flex justify-center items-center gap-2 text-xs font-bold text-slate-500">
-                                                測站: {apiData.station}
-                                                <span className={`px-2 py-0.5 rounded-full text-[10px] ${apiData.stationType === '局屬站' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
-                                                    {apiData.stationType}
-                                                </span>
-                                            </div>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div className="bg-blue-50 p-4 rounded-[1.5rem] border border-blue-100 space-y-4">
-                                        <div className="flex items-center gap-1 text-xs text-blue-500 mb-2 font-bold justify-center">
-                                            <Icon name="Settings2" className="w-4 h-4" /> 手動輸入參考數值
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="bg-white p-2 rounded-xl border border-blue-100 text-center shadow-sm">
-                                                <div className="text-[9px] font-black text-blue-400 uppercase mb-1">溫度 °C</div>
-                                                <input type="number" step="0.1" value={manualOut.t} onFocus={e=>e.target.select()} onChange={e=>setManualOut({...manualOut, t: e.target.value})} className="w-full text-center text-lg font-black bg-transparent outline-none text-slate-700" />
-                                                <input type="range" min="0" max="40" step="0.1" value={parseFloat(manualOut.t) || 24} onChange={e=>setManualOut({...manualOut, t: e.target.value})} className="w-full h-1 mt-2 bg-blue-100 rounded-lg appearance-none cursor-pointer accent-blue-500" />
-                                            </div>
-                                            <div className="bg-white p-2 rounded-xl border border-blue-100 text-center shadow-sm">
-                                                <div className="text-[9px] font-black text-blue-400 uppercase mb-1">濕度 %</div>
-                                                <input type="number" step="1" value={manualOut.h} onFocus={e=>e.target.select()} onChange={e=>setManualOut({...manualOut, h: e.target.value})} className="w-full text-center text-lg font-black bg-transparent outline-none text-slate-700" />
-                                                <input type="range" min="20" max="100" step="1" value={parseFloat(manualOut.h) || 65} onChange={e=>setManualOut({...manualOut, h: e.target.value})} className="w-full h-1 mt-2 bg-blue-100 rounded-lg appearance-none cursor-pointer accent-blue-500" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {apiData.error && !isManual && <div className="text-xs text-red-500 font-bold bg-red-50 p-3 rounded-xl border border-red-100 text-center">{apiData.error}</div>}
-
-                                <div className="grid grid-cols-3 gap-2">
-                                    <DataCard label="溫度" value={outT} unit="°" icon="Thermometer" loading={!isManual && apiData.loading} />
-                                    <DataCard label="濕度" value={outH} unit="%" icon="Droplets" loading={!isManual && apiData.loading} />
-                                    <DataCard label="室外露點" value={outDP} unit="°" icon="Wind" highlight loading={!isManual && apiData.loading} />
-                                </div>
-                            </section>
-
-                            <section className="space-y-4 pt-2 border-t border-slate-100">
-                                <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 pl-1"><Icon name="Thermometer" className="text-orange-500 w-4 h-4" /> 室內環境 (Indoor)</h2>
-                                <div className="bg-orange-50/50 p-4 rounded-[1.5rem] border border-orange-100 space-y-4">
-                                    <div className="grid grid-cols-3 gap-2">
-                                        <div className="bg-white p-2 rounded-xl border border-orange-100 text-center shadow-sm">
-                                            <div className="text-[9px] font-black text-orange-400 uppercase mb-1">溫度 °C</div>
-                                            <input type="number" step="0.1" value={indoor.t} onFocus={e=>e.target.select()} onChange={e=>setIndoor({...indoor, t: e.target.value})} className="w-full text-center text-lg font-black bg-transparent outline-none text-slate-700" />
-                                        </div>
-                                        <div className="bg-white p-2 rounded-xl border border-orange-100 text-center shadow-sm">
-                                            <div className="text-[9px] font-black text-orange-400 uppercase mb-1">濕度 %</div>
-                                            <input type="number" step="1" value={indoor.h} onFocus={e=>e.target.select()} onChange={e=>setIndoor({...indoor, h: e.target.value})} className="w-full text-center text-lg font-black bg-transparent outline-none text-slate-700" />
-                                        </div>
-                                        <div className="bg-indigo-600 p-2 rounded-xl text-center shadow-lg shadow-indigo-200 flex flex-col justify-center">
-                                            <div className="text-[9px] font-black text-indigo-200 uppercase mb-1">室內露點</div>
-                                            <div className="text-lg font-black text-white">{inDP ?? '--'}°</div>
-                                        </div>
-                                    </div>
-                                    <div className="px-1 space-y-4">
-                                        <input type="range" min="15" max="35" step="0.1" value={parseFloat(indoor.t) || 26} onChange={e=>setIndoor({...indoor, t: e.target.value})} className="w-full h-1.5 bg-orange-200 rounded-lg appearance-none cursor-pointer accent-orange-500" />
-                                        <input type="range" min="30" max="95" step="1" value={parseFloat(indoor.h) || 70} onChange={e=>setIndoor({...indoor, h: e.target.value})} className="w-full h-1.5 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-500" />
-                                    </div>
-                                </div>
-                                <label className="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-2xl cursor-pointer hover:bg-slate-50 transition-all shadow-sm">
-                                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${noMoisture ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300'}`}>
-                                        {noMoisture && <Icon name="Check" className="text-white w-4 h-4" />}
-                                    </div>
-                                    <input type="checkbox" checked={noMoisture} onChange={()=>setNoMoisture(!noMoisture)} className="hidden" />
-                                    <span className="text-xs font-black text-slate-600 uppercase tracking-tighter">無強濕源 (無曬衣、烹飪)</span>
-                                </label>
-                            </section>
-
-                            {analysis && (
-                                <section className="space-y-3 pt-2 border-t border-slate-100">
-                                    <div className="space-y-2">
-                                        {analysis.items.map((item, i) => (
-                                            <div key={i} className={`flex items-center gap-4 p-3 bg-white border rounded-2xl shadow-sm ${item.pass ? 'border-emerald-100' : 'border-red-100'}`}>
-                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${item.pass ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}><Icon name={item.pass ? "Check" : "X"} className="w-5 h-5" /></div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex justify-between items-center mb-0.5"><h4 className="font-black text-xs text-slate-700">{item.label}</h4><span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${item.pass ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>{item.pass ? "符合" : "不合"}</span></div>
-                                                    <div className="font-mono text-[10px] text-slate-500 truncate mt-1">{item.val}</div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className={`p-6 rounded-[2.5rem] text-center border-4 transition-all duration-500 ${analysis.pass ? 'bg-emerald-50 border-emerald-500/20 shadow-xl' : (algo==='standard' && !analysis.pass && analysis.title === '反潮警報' ? 'bg-red-50 border-red-500/20 shadow-xl' : 'bg-slate-50 border-slate-200 shadow-xl')}`}>
-                                        <h3 className={`text-3xl font-black mb-2 ${analysis.pass ? 'text-emerald-700' : (algo==='standard' && !analysis.pass && analysis.title === '反潮警報' ? 'text-red-600' : 'text-slate-600')}`}>
-                                            {analysis.pass ? "✅ 建議開窗" : (algo==='standard' && !analysis.pass && analysis.title === '反潮警報' ? "🚨 反潮警報" : "❌ 建議關窗")}
-                                        </h3>
-                                        <p className="text-[11px] font-bold opacity-60 uppercase tracking-widest">{analysis.title}</p>
-                                    </div>
-                                </section>
-                            )}
+                            {tab === 'strict'   && <OriginalTab algo="strict"   outdoor={outdoor} />}
+                            {tab === 'standard' && <OriginalTab algo="standard" outdoor={outdoor} />}
+                            {tab === 'dk'       && <DkTab outdoor={outdoor} />}
                         </main>
+
                         <footer className="p-4 text-center text-[9px] text-slate-400 border-t bg-slate-50 font-bold uppercase tracking-widest">
                             Data Source: CWA O-A0003-001 & O-A0001-001
                         </footer>
@@ -325,13 +554,6 @@
                 </div>
             );
         }
-
-        const DataCard = ({ label, value, unit, icon, highlight, loading }) => (
-            <div className={`p-3 rounded-2xl text-center border transition-all ${highlight ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg shadow-emerald-100' : 'bg-white border-slate-100 shadow-sm'}`}>
-                <div className={`text-[9px] font-black flex justify-center items-center gap-1 mb-1 ${highlight ? 'text-emerald-100' : 'text-slate-400 uppercase'}`}><Icon name={icon} className="w-3 h-3" /> {label}</div>
-                {loading ? <div className="h-6 w-12 bg-slate-100 rounded animate-pulse mx-auto"></div> : <div className="text-lg font-black">{value ?? '--'}<span className="text-[10px] ml-0.5 font-normal">{unit}</span></div>}
-            </div>
-        );
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
