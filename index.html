@@ -291,7 +291,6 @@
         // ─── Tab 3: dk framework ────────────────────────────────────────────────
         function DkTab({ outdoor, indoor, setIndoor }) {
             const { outT, outH } = outdoor;
-            const [isRaining, setIsRaining] = useState(false);
 
             const outDP = useMemo(() => calculateDP(outT, outH), [outT, outH]);
             const inDP  = useMemo(() => calculateDP(indoor.t, indoor.h), [indoor.t, indoor.h]);
@@ -355,9 +354,7 @@
                     detail = `外露點(${outDP}°) < 室內露點(${inDP}°)，開窗可有效排出室內濕氣`;
                 }
 
-                const rainingNote = isRaining
-                    ? `下雨中：室外露點偏高，開窗會引入濕氣，但若室外較涼(${outT}° vs ${inT}°室內)，可接受以排熱為優先，事後以除濕模式補救`
-                    : null;
+                const rainingNote = null;
 
                 return {
                     verdict, emoji, title, color, detail,
@@ -367,7 +364,7 @@
                     ],
                     rainingNote
                 };
-            }, [outDP, inDP, indoor.t, outT, isRaining]);
+            }, [outDP, inDP, indoor.t, outT]);
 
             const colorMap = {
                 emerald: { bg: 'bg-emerald-50', border: 'border-emerald-500/20', text: 'text-emerald-700' },
@@ -404,14 +401,6 @@
                             </div>
                         </div>
 
-                        {/* 下雨旗標 */}
-                        <label className="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-2xl cursor-pointer hover:bg-slate-50 transition-all shadow-sm">
-                            <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${isRaining ? 'bg-blue-500 border-blue-500' : 'border-slate-300'}`}>
-                                {isRaining && <Icon name="Check" className="text-white w-4 h-4" />}
-                            </div>
-                            <input type="checkbox" checked={isRaining} onChange={() => setIsRaining(!isRaining)} className="hidden" />
-                            <span className="text-xs font-black text-slate-600">🌧️ 目前正在下雨</span>
-                        </label>
                     </section>
 
                     {/* 露點尺 */}
